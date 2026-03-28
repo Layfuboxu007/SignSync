@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
 import { API } from "../api";
+import { useNavigate, Link } from "react-router-dom";
+import "../styles/Login.css";
 
 function Login() {
   const [username, setUsername] = useState("");
@@ -9,48 +10,47 @@ function Login() {
 
   const handleLogin = async () => {
     try {
-      const res = await API.post("/login", {
-        username,
-        password,
-      });
-
-      // save token
+      const res = await API.post("/login", { username, password });
       localStorage.setItem("token", res.data.token);
-
-      // go to home page
       navigate("/home");
     } catch (err) {
-      alert(err.response?.data?.error || "Login failed");
-    }
+  alert(err.response?.data?.error || "Login failed");
+}
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    handleLogin();
   };
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h2>Login</h2>
+    <div className="login-container">
+      <div className="login-card">
+        <h2>Login</h2>
 
-      <input
-        type="text"
-        placeholder="Username"
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
-      />
+        <form onSubmit={handleSubmit}>
+          <input
+            className="login-input"
+            placeholder="Username"
+            onChange={(e) => setUsername(e.target.value)}
+          />
 
-      <br /><br />
+          <input
+            className="login-input"
+            type="password"
+            placeholder="Password"
+            onChange={(e) => setPassword(e.target.value)}
+          />
 
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
+          <button className="login-button" type="submit">
+            Login
+          </button>
+        </form>
 
-      <br /><br />
-
-      <button onClick={handleLogin}>Login</button>
-
-      <p>
-        Don't have an account? <Link to="/register">Register</Link>
-      </p>
+        <p>
+          No account? <Link to="/register">Register</Link>
+        </p>
+      </div>
     </div>
   );
 }
