@@ -1,7 +1,7 @@
 require("dotenv").config();
 // IMPORTS
 const express = require("express");
-const sqlite3 = require("sqlite3").verbose();
+const { createClient } = require("@supabase/supabase-js");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
@@ -11,31 +11,29 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// DATABASE
-const db = new sqlite3.Database("./database.db", (err) => {
-  if (err) {
-    console.error("Database error:", err.message);
-  } else {
-    console.log("Connected to SQLite database");
-  }
-});
 
-// CREATE TABLE
-db.run(`
-  CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT UNIQUE,
-    password TEXT
-  )
-`);
+// DATABASE 
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_KEY
+);
 
 // =======================
 // ROUTES
 // =======================
 
-// TEST ROUTE (optional but useful)
+// TEST ROUTE
 app.get("/", (req, res) => {
   res.send("Server is working!");
+});
+
+// TEST DB CONNECTION
+app.get("/test-db", async (req, res) => {
+  const { data, error } = await supabase.from("users").select("*");
+
+  if (error) return res.json(error);
+  res.json(data);
 });
 
 // REGISTER
@@ -45,51 +43,50 @@ app.post("/register", async (req, res) => {
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    db.run(
-      "INSERT INTO users (username, password) VALUES (?, ?)",
-      [username, hashedPassword],
-      function (err) {
-        if (err) {
-          return res.status(400).json({ error: "Username already exists" });
-        }
+    const { error } = await supabase
+      .from("users")
+      .insert([
+        {
+          username,
+          password_hash: hashedPassword,
+        },
+      ]);
 
-        res.json({ message: "User registered successfully" });
-      }
-    );
+    if (error) {
+      return res.status(400).json({ error: error.message });
+    }
+
+    res.json({ message: "User registered successfully" });
   } catch (err) {
     res.status(500).json({ error: "Server error" });
   }
 });
 
 // LOGIN
-app.post("/login", (req, res) => {
+app.post("/login", async (req, res) => {
   const { username, password } = req.body;
 
-  db.get(
-    "SELECT * FROM users WHERE username = ?",
-    [username],
-    async (err, user) => {
-      if (err) {
-        return res.status(500).json({ error: "Database error" });
-      }
+  const { data: user, error } = await supabase
+    .from("users")
+    .select("*")
+    .eq("username", username)
+    .single();
 
-      if (!user) {
-        return res.status(400).json({ error: "User not found" });
-      }
+  if (error || !user) {
+    return res.status(400).json({ error: "User not found" });
+  }
 
-      const valid = await bcrypt.compare(password, user.password);
+  const valid = await bcrypt.compare(password, user.password_hash);
 
-      if (!valid) {
-        return res.status(400).json({ error: "Invalid password" });
-      }
+  if (!valid) {
+    return res.status(400).json({ error: "Invalid password" });
+  }
 
-      const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET || "secretkey", {
-        expiresIn: "1h",
-      });
+  const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET || "secretkey", {
+    expiresIn: "1h",
+  });
 
-      res.json({ token });
-    }
-  );
+  res.json({ token });
 });
 
 // =======================

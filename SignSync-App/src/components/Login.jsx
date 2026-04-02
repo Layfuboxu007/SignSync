@@ -1,55 +1,99 @@
 import { useState } from "react";
 import { API } from "../api";
 import { useNavigate, Link } from "react-router-dom";
-import "../styles/Login.css";
 
 function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = async () => {
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoading(true);
     try {
       const res = await API.post("/login", { username, password });
       localStorage.setItem("token", res.data.token);
       navigate("/home");
     } catch (err) {
-  alert(err.response?.data?.error || "Login failed");
-}
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    handleLogin();
+      alert(err.response?.data?.error || "Login failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <h2>Login</h2>
+    <div className="auth-page">
+      <div className="auth-card">
+        <div className="auth-header">
+          <h2>Welcome Back</h2>
+          <p>Please enter your details to sign in.</p>
+        </div>
 
-        <form onSubmit={handleSubmit}>
-          <input
-            className="login-input"
-            placeholder="Username"
-            onChange={(e) => setUsername(e.target.value)}
-          />
+        <div style={{ display: "flex", gap: "12px", marginBottom: "24px" }}>
+          <button className="secondary" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", flex: 1 }}>
+            <img src="https://img.icons8.com/color/24/000000/google-logo.png" alt="Google" style={{ width: "18px" }} />
+            Google
+          </button>
+          <button className="secondary" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", flex: 1 }}>
+            <img src="https://img.icons8.com/ios-filled/24/000000/mac-os.png" alt="Apple" style={{ width: "18px" }} />
+            Apple
+          </button>
+        </div>
 
-          <input
-            className="login-input"
-            type="password"
-            placeholder="Password"
-            onChange={(e) => setPassword(e.target.value)}
-          />
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", margin: "24px 0", opacity: 0.3 }}>
+          <hr style={{ flex: 1, border: "0.5px solid var(--border)" }} />
+          <span style={{ fontSize: "12px", fontWeight: "600" }}>OR</span>
+          <hr style={{ flex: 1, border: "0.5px solid var(--border)" }} />
+        </div>
 
-          <button className="login-button" type="submit">
-            Login
+        <form className="auth-form" onSubmit={handleLogin} style={{ textAlign: "left" }}>
+          <div style={{ marginBottom: "20px" }}>
+            <label style={{ display: "block", fontSize: "14px", fontWeight: "600", marginBottom: "8px", color: "var(--text-h)" }}>
+              Username or Email
+            </label>
+            <input
+              type="text"
+              placeholder="Enter your username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+            />
+          </div>
+
+          <div style={{ marginBottom: "20px" }}>
+            <label style={{ display: "block", fontSize: "14px", fontWeight: "600", marginBottom: "8px", color: "var(--text-h)" }}>
+              Password
+            </label>
+            <input
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", cursor: "pointer" }}>
+              <input type="checkbox" style={{ width: "16px", height: "16px" }} />
+              Remember for 30 days
+            </label>
+            <Link to="/forgot-password" style={{ fontSize: "14px" }}>
+              Forgot Password?
+            </Link>
+          </div>
+
+          <button type="submit" disabled={loading} style={{ padding: "14px" }}>
+            {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
 
-        <p>
-          No account? <Link to="/register">Register</Link>
-        </p>
+        <div className="auth-footer" style={{ marginTop: "32px" }}>
+          <p style={{ fontSize: "14px" }}>
+            Don't have an account? <Link to="/register">Sign up</Link>
+          </p>
+        </div>
       </div>
     </div>
   );
