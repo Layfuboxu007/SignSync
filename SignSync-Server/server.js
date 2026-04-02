@@ -1,3 +1,4 @@
+require("dotenv").config();
 // IMPORTS
 const express = require("express");
 const sqlite3 = require("sqlite3").verbose();
@@ -82,7 +83,7 @@ app.post("/login", (req, res) => {
         return res.status(400).json({ error: "Invalid password" });
       }
 
-      const token = jwt.sign({ id: user.id }, "secretkey", {
+      const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET || "secretkey", {
         expiresIn: "1h",
       });
 
@@ -95,6 +96,7 @@ app.post("/login", (req, res) => {
 // START SERVER
 // =======================
 
-app.listen(5000, () => {
-  console.log("Server running on http://localhost:5000");
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });
