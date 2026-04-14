@@ -1,8 +1,15 @@
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import aslHero from "../assets/asl_hero.png";
 import healthcareImg from "../assets/healthcare.png";
 
 function Landing() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    if (localStorage.getItem("token")) setIsLoggedIn(true);
+  }, []);
+
   return (
     <div className="landing-page">
       <nav className="container nav-container">
@@ -11,10 +18,18 @@ function Landing() {
           <Link to="/" style={{ color: "var(--text-h)" }}>Home</Link>
           <Link to="/courses" style={{ color: "var(--text)" }}>Courses</Link>
           <Link to="/about" style={{ color: "var(--text)" }}>About</Link>
-          <Link to="/login" style={{ color: "var(--text)", marginLeft: "20px" }}>Log In</Link>
-          <Link to="/register">
-            <button className="secondary" style={{ width: "auto" }}>Sign Up</button>
-          </Link>
+          {isLoggedIn ? (
+            <Link to="/dashboard" style={{ marginLeft: "20px" }}>
+              <button className="primary" style={{ width: "auto" }}>Go to Dashboard</button>
+            </Link>
+          ) : (
+            <>
+              <Link to="/login" style={{ color: "var(--text)", marginLeft: "20px" }}>Log In</Link>
+              <Link to="/register">
+                <button className="secondary" style={{ width: "auto" }}>Sign Up</button>
+              </Link>
+            </>
+          )}
         </div>
       </nav>
 

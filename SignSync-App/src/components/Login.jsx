@@ -5,18 +5,26 @@ import { useNavigate, Link } from "react-router-dom";
 function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setErrorMsg("");
+
+    if (!username || !password) {
+      setErrorMsg("Please enter both your username and password.");
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await API.post("/login", { username, password });
       localStorage.setItem("token", res.data.token);
-      navigate("/home");
+      navigate("/start");
     } catch (err) {
-      alert(err.response?.data?.error || "Login failed");
+      setErrorMsg(err.response?.data?.error || "Login failed");
     } finally {
       setLoading(false);
     }
@@ -24,7 +32,7 @@ function Login() {
 
   return (
     <div className="auth-page">
-      <div className="auth-card">
+      <div className="auth-card" style={{ maxWidth: "500px" }}>
         <div className="auth-header">
           <h2>Welcome Back</h2>
           <p>Please enter your details to sign in.</p>
@@ -48,6 +56,12 @@ function Login() {
         </div>
 
         <form className="auth-form" onSubmit={handleLogin} style={{ textAlign: "left" }}>
+          {errorMsg && (
+            <div style={{ background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", padding: "12px", borderRadius: "8px", fontSize: "14px", marginBottom: "24px", border: "1px solid rgba(239, 68, 68, 0.2)" }}>
+              ⚠️ {errorMsg}
+            </div>
+          )}
+
           <div style={{ marginBottom: "20px" }}>
             <label style={{ display: "block", fontSize: "14px", fontWeight: "600", marginBottom: "8px", color: "var(--text-h)" }}>
               Username or Email

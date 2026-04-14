@@ -18,7 +18,7 @@ function ForgotPassword() {
 
   return (
     <div className="auth-page">
-      <div className="auth-card glass">
+      <div className="auth-card glass" style={{ maxWidth: "500px", margin: "0 auto" }}>
         <div className="auth-header">
           <h2>Reset Password</h2>
           <p>

@@ -3,27 +3,43 @@ import { API } from "../api";
 import { useNavigate, Link } from "react-router-dom";
 
 function Register() {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [role, setRole] = useState("learner");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    setErrorMsg("");
+
+    if (!/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(email)) {
+      setErrorMsg("Please enter a valid email address.");
+      return;
+    }
+
+    if (password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
+      setErrorMsg("Password must be at least 8 characters, with 1 uppercase letter and 1 number.");
+      return;
+    }
+
     if (password !== confirmPassword) {
-      alert("Passwords do not match");
+      setErrorMsg("Passwords do not match.");
       return;
     }
     
     setLoading(true);
     try {
-      await API.post("/register", { username, email, password });
+      await API.post("/register", { firstName, lastName, username, email, password, role });
       alert("Registration successful! Please login.");
       navigate("/login");
     } catch (err) {
-      alert(err.response?.data?.error || "Registration failed");
+      setErrorMsg(err.response?.data?.error || "Registration failed");
     } finally {
       setLoading(false);
     }
@@ -55,6 +71,41 @@ function Register() {
         </div>
 
         <form className="auth-form" onSubmit={handleRegister} style={{ textAlign: "left" }}>
+          
+          {errorMsg && (
+            <div style={{ background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", padding: "12px", borderRadius: "8px", fontSize: "14px", marginBottom: "24px", border: "1px solid rgba(239, 68, 68, 0.2)" }}>
+              ⚠️ {errorMsg}
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: "16px", marginBottom: "24px" }}>
+            <div 
+              onClick={() => setRole("learner")}
+              style={{ flex: 1, padding: "16px", borderRadius: "12px", border: role === "learner" ? "2px solid var(--accent)" : "2px solid var(--border)", background: role === "learner" ? "var(--accent-bg)" : "transparent", cursor: "pointer", textAlign: "center", transition: "all 0.2s" }}
+            >
+              <div style={{ fontSize: "24px", marginBottom: "8px" }}>🎓</div>
+              <div style={{ fontSize: "14px", fontWeight: "600", color: role === "learner" ? "var(--accent)" : "var(--text)" }}>I am a Student</div>
+            </div>
+            <div 
+              onClick={() => setRole("instructor")}
+              style={{ flex: 1, padding: "16px", borderRadius: "12px", border: role === "instructor" ? "2px solid var(--accent)" : "2px solid var(--border)", background: role === "instructor" ? "var(--accent-bg)" : "transparent", cursor: "pointer", textAlign: "center", transition: "all 0.2s" }}
+            >
+              <div style={{ fontSize: "24px", marginBottom: "8px" }}>🧑‍🏫</div>
+              <div style={{ fontSize: "14px", fontWeight: "600", color: role === "instructor" ? "var(--accent)" : "var(--text)" }}>I am an Instructor</div>
+            </div>
+          </div>
+          
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
+            <div>
+              <label style={{ display: "block", fontSize: "14px", fontWeight: "600", marginBottom: "8px", color: "var(--text-h)" }}>First Name</label>
+              <input type="text" placeholder="Jane" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: "14px", fontWeight: "600", marginBottom: "8px", color: "var(--text-h)" }}>Last Name</label>
+              <input type="text" placeholder="Doe" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
+            </div>
+          </div>
+          
           <div style={{ marginBottom: "16px" }}>
             <label style={{ display: "block", fontSize: "14px", fontWeight: "600", marginBottom: "8px", color: "var(--text-h)" }}>
               Username
