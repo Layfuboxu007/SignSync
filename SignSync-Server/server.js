@@ -58,8 +58,8 @@ app.post("/register", async (req, res) => {
   if (!email || !/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(email)) {
     return res.status(400).json({ error: "Invalid email address format." });
   }
-  if (!password || password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
-    return res.status(400).json({ error: "Password must be at least 8 characters long, and contain at least 1 uppercase letter and 1 number." });
+  if (!password || password.length < 8 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password) || !/[^a-zA-Z0-9]/.test(password)) {
+    return res.status(400).json({ error: "Password must be at least 8 characters long, and contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character." });
   }
   if (!username) {
     return res.status(400).json({ error: "Username is an absolutely required field." });

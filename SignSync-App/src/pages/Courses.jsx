@@ -69,67 +69,16 @@ function Courses() {
                 ← Back to SignSync Library
               </button>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: "32px" }}>
-                {/* AI Camera Placeholder */}
-                <div className="card" style={{ padding: 0, height: "450px", background: "#0a0a0a", position: "relative", overflow: "hidden", display: "flex", justifyContent: "center", alignItems: "center", border: "1px solid var(--panel-border)" }}>
-                  
-                  <div style={{ position: "absolute", top: "20px", left: "20px", background: "rgba(0,0,0,0.6)", color: "#10b981", padding: "6px 12px", borderRadius: "8px", fontSize: "12px", display: "flex", alignItems: "center", gap: "8px", zIndex: 10 }}>
-                    <div style={{ width: "8px", height: "8px", background: "#10b981", borderRadius: "50%", animation: "pulse 2s infinite" }}></div>
-                    SignSync Edge Engine Active
+              <div style={{ display: "flex", justifyContent: "center" }}>
+                <div className="card" style={{ maxWidth: "600px", width: "100%", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "40px" }}>
+                  <div style={{ width: "80px", height: "80px", background: `rgba(${parseInt(activeCourse.color.slice(1,3), 16)}, ${parseInt(activeCourse.color.slice(3,5), 16)}, ${parseInt(activeCourse.color.slice(5,7), 16)}, 0.1)`, borderRadius: "20px", display: "flex", justifyContent: "center", alignItems: "center", fontSize: "40px", marginBottom: "24px" }}>
+                    {activeCourse.icon}
                   </div>
-                  
-                  {/* Subject Scanner Box */}
-                  <div style={{ width: "240px", height: "300px", border: "2px dashed rgba(20, 184, 166, 0.4)", borderRadius: "12px", position: "relative" }}>
-                    <div style={{ position: "absolute", top: "0", left: "0", width: "100%", height: "4px", background: "var(--accent)", boxShadow: "0 0 15px var(--accent)", animation: "scan 3s linear infinite" }}></div>
-                  </div>
-                  
-                  <p style={{ position: "absolute", bottom: "32px", color: "#fff", opacity: 0.5, fontSize: "14px" }}>
-                    Waiting for hand gestures... Position yourself in the SignSync frame.
-                  </p>
-
-                  <style>{`
-                    @keyframes scan {
-                      0% { top: 0; opacity: 1; }
-                      50% { top: 100%; opacity: 0.3; }
-                      100% { top: 0; opacity: 1; }
-                    }
-                    @keyframes pulse {
-                      0% { opacity: 1; }
-                      50% { opacity: 0.5; }
-                      100% { opacity: 1; }
-                    }
-                    @keyframes fadeIn {
-                      from { opacity: 0; transform: translateY(10px); }
-                      to { opacity: 1; transform: translateY(0); }
-                    }
-                  `}</style>
-                </div>
-
-                {/* AI Feedback Panel */}
-                <div className="card" style={{ height: "450px", display: "flex", flexDirection: "column" }}>
-                  <div className="badge" style={{ background: `rgba(${parseInt(activeCourse.color.slice(1,3), 16)}, ${parseInt(activeCourse.color.slice(3,5), 16)}, ${parseInt(activeCourse.color.slice(5,7), 16)}, 0.1)`, color: activeCourse.color, marginBottom: "16px" }}>
-                    SignSync Live Matrix
-                  </div>
-                  <h2 style={{ fontSize: "22px", marginBottom: "8px" }}>{activeCourse.title}</h2>
-                  <p style={{ fontSize: "14px", color: "var(--text)", marginBottom: "32px", lineHeight: "1.5" }}>
+                  <h2 style={{ fontSize: "28px", marginBottom: "16px" }}>{activeCourse.title}</h2>
+                  <p style={{ fontSize: "16px", color: "var(--text)", marginBottom: "40px", lineHeight: "1.6" }}>
                     {activeCourse.desc}
                   </p>
-
-                  <ul style={{ listStyle: "none", padding: 0, display: "flex", flexDirection: "column", gap: "20px" }}>
-                    <li style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border)", paddingBottom: "16px" }}>
-                      <span style={{ color: "var(--text-h)", fontSize: "14px" }}>Skeletal Accuracy</span>
-                      <span style={{ color: "#10b981", fontWeight: "700", fontSize: "14px" }}>Tracking via Edge AI</span>
-                    </li>
-                    <li style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border)", paddingBottom: "16px" }}>
-                      <span style={{ color: "var(--text-h)", fontSize: "14px" }}>Motion Heatmap</span>
-                      <span style={{ color: "#f59e0b", fontWeight: "700", fontSize: "14px" }}>Rendering...</span>
-                    </li>
-                    <li style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border)", paddingBottom: "16px" }}>
-                      <span style={{ color: "var(--text-h)", fontSize: "14px" }}>Lexicon Match</span>
-                      <span style={{ color: "var(--text)", fontSize: "14px", opacity: 0.5 }}>Awaiting Input</span>
-                    </li>
-                  </ul>
-
+                  
                   <button 
                     onClick={() => {
                       if (!activeCourse.premium) {
@@ -141,16 +90,23 @@ function Courses() {
                       }
                     }}
                     style={{ 
-                      marginTop: "auto", 
                       width: "100%", 
-                      padding: "14px", 
+                      padding: "16px", 
                       background: activeCourse.premium ? "transparent" : "var(--accent)", 
                       border: activeCourse.premium ? "2px solid var(--border)" : "none",
-                      color: activeCourse.premium ? "var(--text)" : "#000" 
+                      color: activeCourse.premium ? "var(--text)" : "#000",
+                      fontSize: "16px",
+                      fontWeight: "bold"
                     }}
                   >
-                    {activeCourse.premium ? "Unlock with Pro" : "Start Practical AI Session"}
+                    {activeCourse.premium ? "Unlock with Pro" : "Start Course"}
                   </button>
+                  <style>{`
+                    @keyframes fadeIn {
+                      from { opacity: 0; transform: translateY(10px); }
+                      to { opacity: 1; transform: translateY(0); }
+                    }
+                  `}</style>
                 </div>
               </div>
             </div>
