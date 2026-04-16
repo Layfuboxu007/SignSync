@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { API } from "../api";
+import { API, supabase } from "../api";
 
 function Settings() {
   const [email, setEmail] = useState("");
@@ -13,9 +13,9 @@ function Settings() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const { data } = await API.get("/user/me");
-        if (data.email) {
-          setEmail(data.email);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.email) {
+          setEmail(user.email);
         }
       } catch (err) {
         console.error("Failed to fetch user", err);
@@ -28,12 +28,25 @@ function Settings() {
     e.preventDefault();
     setLoading(true);
     try {
-      await API.put("/user", { email, password, newPassword });
+      let updateData = {};
+      if (email) updateData.email = email;
+      if (newPassword) updateData.password = newPassword;
+      
+      // We don't check old password natively here as Supabase session is secure,
+      // but they should be recently authenticated to change password securely.
+      const { data, error } = await supabase.auth.updateUser(updateData);
+      if (error) throw error;
+      
+      if (data?.user) {
+        // Also update public profile
+        await supabase.from("users").update({ email }).eq('id', data.user.id);
+      }
+
       alert("Settings updated successfully!");
       setPassword("");
       setNewPassword("");
     } catch (err) {
-      alert(err.response?.data?.error || "Failed to update settings");
+      alert(err.message || "Failed to update settings");
     } finally {
       setLoading(false);
     }
@@ -43,12 +56,16 @@ function Settings() {
     if (window.confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
       setDeleteLoading(true);
       try {
-        await API.delete("/user");
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+           await supabase.from('users').delete().eq('id', user.id);
+        }
+        await API.delete("/user"); // We can still call this to delete standard server side data if needed
+        await supabase.auth.signOut();
         alert("Account deleted successfully.");
-        localStorage.removeItem("token");
         navigate("/");
       } catch (err) {
-        alert(err.response?.data?.error || "Failed to delete account");
+        alert(err.message || "Failed to delete account");
         setDeleteLoading(false);
       }
     }

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { API } from "../api";
+import { supabase } from "../api";
 import { useNavigate, Link } from "react-router-dom";
 
 function Register() {
@@ -35,11 +35,39 @@ function Register() {
     
     setLoading(true);
     try {
-      await API.post("/register", { firstName, lastName, username, email, password, role });
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+            username: username,
+            role: role
+          }
+        }
+      });
+      if (error) throw error;
+      
+      // Optionally sync to the public users table for backwards compatibility
+      if (data?.user) {
+        try {
+          await API.post("/sync-user", {
+             firstName,
+             lastName,
+             username,
+             role,
+             email
+          });
+        } catch (insertError) {
+          console.error("Could not sync user profile:", insertError);
+        }
+      }
+
       alert("Registration successful! Please login.");
       navigate("/login");
     } catch (err) {
-      setErrorMsg(err.response?.data?.error || "Registration failed");
+      setErrorMsg(err.message || "Registration failed");
     } finally {
       setLoading(false);
     }

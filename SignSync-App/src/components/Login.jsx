@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { API } from "../api";
+import { supabase, API } from "../api";
 import { useNavigate, Link } from "react-router-dom";
 
 function Login() {
@@ -20,11 +20,36 @@ function Login() {
 
     setLoading(true);
     try {
-      const res = await API.post("/login", { username, password });
-      localStorage.setItem("token", res.data.token);
-      navigate("/start");
+      let loginEmail = username;
+      
+      // If no @ symbol, assume it's a username and lookup the email
+      if (!loginEmail.includes('@')) {
+         try {
+           const res = await API.post("/lookup-email", { username });
+           loginEmail = res.data.email;
+         } catch (e) {
+           throw new Error(e.response?.data?.error || e.message || "Username not found");
+         }
+      }
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: loginEmail,
+        password: password
+      });
+      
+      if (error) throw error;
+      const { data: dbData } = await API.get("/user/me");
+      if (dbData?.data?.role === "instructor" || dbData?.role === "instructor") {
+        navigate("/instructor/dashboard");
+      } else {
+        if (localStorage.getItem("onboardingComplete")) {
+          navigate("/dashboard");
+        } else {
+          navigate("/start");
+        }
+      }
     } catch (err) {
-      setErrorMsg(err.response?.data?.error || "Login failed");
+      setErrorMsg(err.message || "Login failed");
     } finally {
       setLoading(false);
     }

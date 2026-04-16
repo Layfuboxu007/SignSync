@@ -20,17 +20,27 @@ const supabase = createClient(
 );
 
 // MIDDLEWARE
-const authenticateToken = (req, res, next) => {
+const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
   
   if (!token) return res.status(401).json({ error: "Access denied" });
   
-  jwt.verify(token, process.env.JWT_SECRET || "secretkey", (err, user) => {
-    if (err) return res.status(403).json({ error: "Invalid token" });
-    req.user = user;
-    next();
-  });
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+  
+  if (error || !user) {
+    return res.status(403).json({ error: "Invalid token" });
+  }
+
+  // Fetch the numeric ID from the public users table so relations like 'instructor_id' do not break
+  const { data: dbUser } = await supabase.from('users').select('id, role').eq('email', user.email).single();
+
+  req.user = {
+    id: dbUser ? dbUser.id : user.id,
+    email: user.email,
+    role: dbUser ? dbUser.role : (user.user_metadata?.role || "learner")
+  };
+  next();
 };
 
 // =======================
@@ -50,81 +60,29 @@ app.get("/test-db", async (req, res) => {
   res.json(data);
 });
 
-// REGISTER
-app.post("/register", async (req, res) => {
-  const { firstName, lastName, username, email, password, role } = req.body;
+// =======================
+// RLS BYPASS ENDPOINTS
+// =======================
 
-  // Server-Side Verification
-  if (!email || !/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(email)) {
-    return res.status(400).json({ error: "Invalid email address format." });
-  }
-  if (!password || password.length < 8 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password) || !/[^a-zA-Z0-9]/.test(password)) {
-    return res.status(400).json({ error: "Password must be at least 8 characters long, and contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character." });
-  }
-  if (!username) {
-    return res.status(400).json({ error: "Username is an absolutely required field." });
-  }
-
-  try {
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const { error } = await supabase
-      .from("users")
-      .insert([
-        {
-          first_name: firstName,
-          last_name: lastName,
-          role: role || 'learner',
-          username,
-          email,
-          password_hash: hashedPassword,
-        },
-      ]);
-
-    if (error) {
-      return res.status(400).json({ error: error.message });
-    }
-
-    res.json({ message: "User registered successfully" });
-  } catch (err) {
-    res.status(500).json({ error: "Server error" });
-  }
+app.post("/lookup-email", async (req, res) => {
+  const { username } = req.body;
+  const { data, error } = await supabase.from("users").select("email").eq("username", username).single();
+  if (error || !data) return res.status(404).json({ error: "Username not found" });
+  res.json({ email: data.email });
 });
 
-// LOGIN
-app.post("/login", async (req, res) => {
-  const { username, password } = req.body;
-
-  if (!username || !password) {
-    return res.status(400).json({ error: "Both username and password are required to login." });
-  }
-
-  const isEmail = username.includes("@");
-  
-  const query = supabase.from("users").select("*");
-  if (isEmail) {
-    query.eq("email", username);
-  } else {
-    query.eq("username", username);
-  }
-
-  const { data: user, error } = await query.single();
-
-  if (error || !user) {
-    return res.status(400).json({ error: "User not found" });
-  }
-
-  const valid = await bcrypt.compare(password, user.password_hash);
-
-  if (!valid) {
-    return res.status(400).json({ error: "Invalid password" });
-  }
-
-  const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET || "secretkey", {
-    expiresIn: "1h",
+app.post("/sync-user", async (req, res) => {
+  const { firstName, lastName, username, email, role } = req.body;
+  const { error } = await supabase.from("users").insert({
+     first_name: firstName,
+     last_name: lastName,
+     username: username,
+     role: role,
+     email: email,
+     password_hash: "supabase-auth"
   });
-
-  res.json({ token });
+  if (error) return res.status(400).json({ error: error.message });
+  res.json({ success: true });
 });
 
 // READ USER
@@ -139,44 +97,7 @@ app.get("/user/me", authenticateToken, async (req, res) => {
   res.json(user);
 });
 
-// UPDATE USER
-app.put("/user", authenticateToken, async (req, res) => {
-  const { email, password, newPassword } = req.body;
-
-  let updates = {};
-  
-  if (email) {
-    updates.email = email;
-  }
-  
-  if (password && newPassword) {
-    const { data: currentUser, error: userError } = await supabase
-      .from("users")
-      .select("password_hash")
-      .eq("id", req.user.id)
-      .single();
-      
-    if (userError || !currentUser) return res.status(404).json({ error: "User not found" });
-    
-    const valid = await bcrypt.compare(password, currentUser.password_hash);
-    if (!valid) return res.status(400).json({ error: "Invalid current password" });
-    
-    updates.password_hash = await bcrypt.hash(newPassword, 10);
-  }
-  
-  if (Object.keys(updates).length === 0) {
-    return res.status(400).json({ error: "No fields to update" });
-  }
-
-  const { error } = await supabase
-    .from("users")
-    .update(updates)
-    .eq("id", req.user.id);
-
-  if (error) return res.status(400).json({ error: error.message });
-  
-  res.json({ message: "User updated successfully" });
-});
+// (Update user endpoint delegated to Supabase Auth on Frontend)
 
 // DELETE USER
 app.delete("/user", authenticateToken, async (req, res) => {

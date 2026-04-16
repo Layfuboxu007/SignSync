@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { API } from "../api";
+import { API, supabase } from "../api";
 
 function StartPage() {
   const navigate = useNavigate();
   const [selectedGoal, setSelectedGoal] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const [username, setUsername] = useState("Guest");
 
   useEffect(() => {
     const fetchRole = async () => {
@@ -13,19 +15,27 @@ function StartPage() {
         const { data } = await API.get("/user/me");
         if (data.role === "instructor") {
           navigate("/instructor/dashboard");
+        } else {
+          setUsername(data.first_name || data.username || "Learner");
         }
       } catch (err) {
         console.error("Failed to fetch user role", err);
       }
     };
-    fetchRole();
+    
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+         fetchRole();
+      }
+    };
+    checkAuth();
   }, [navigate]);
-
-  const username = localStorage.getItem("token") ? "Learner" : "Guest"; // Mocking username since auth is token-based
 
   const handleStart = () => {
     if (!selectedGoal) return;
     setLoading(true);
+    localStorage.setItem("onboardingComplete", "true");
     // Simulate setting up the user's dashboard preferences based on their goal
     setTimeout(() => {
       navigate("/dashboard");

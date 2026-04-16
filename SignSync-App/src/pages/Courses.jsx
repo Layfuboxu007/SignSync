@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { supabase } from "../api";
 
 function Courses() {
   const navigate = useNavigate();
@@ -7,7 +8,11 @@ function Courses() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    if (localStorage.getItem("token")) setIsLoggedIn(true);
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) setIsLoggedIn(true);
+    };
+    checkAuth();
   }, []);
 
   const courses = [

@@ -333,6 +333,32 @@ a:hover {
   font-size: 18px;
 }
 
+/* Page Entry Animations */
+@keyframes smoothFadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.auth-card, .hero-content, .card, .sidebar, .main-content {
+  animation: smoothFadeInUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.hero-image {
+  animation: smoothFadeInUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) 0.2s both;
+}
+
+.grid .card:nth-child(1) { animation-delay: 0.1s; }
+.grid .card:nth-child(2) { animation-delay: 0.2s; }
+.grid .card:nth-child(3) { animation-delay: 0.3s; }
+.grid .card:nth-child(4) { animation-delay: 0.4s; }
+.grid .card:nth-child(5) { animation-delay: 0.5s; }
+
 @media (max-width: 900px) {
   .hero {
     flex-direction: column;

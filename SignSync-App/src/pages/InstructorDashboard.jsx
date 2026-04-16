@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { API } from "../api";
+import { API, supabase } from "../api";
 
 function InstructorDashboard() {
   const navigate = useNavigate();
@@ -20,13 +20,19 @@ function InstructorDashboard() {
       }
     };
 
-    const token = localStorage.getItem("token");
-    if (!token) navigate("/");
-    else fetchUser();
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate("/");
+      } else {
+        fetchUser();
+      }
+    };
+    checkAuth();
   }, [navigate]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     navigate("/");
   };
 
