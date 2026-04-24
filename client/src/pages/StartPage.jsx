@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUserStore } from "../store/userStore";
+import { Hand, Building2, Zap } from "lucide-react";
 
 function StartPage() {
   const navigate = useNavigate();
@@ -26,77 +27,73 @@ function StartPage() {
   const goals = [
     {
       id: "basics",
-      icon: "👋",
-      title: "Everyday Conversations",
-      desc: "Learn standard alphabet, greetings, and basic daily phrases.",
-      color: "#3b82f6"
+      icon: <Hand size={32} strokeWidth={1.5} />,
+      title: "Core Foundations",
+      desc: "Learn standard alphabet, common greetings, and basic practical phrases.",
+      color: "var(--color-brand)"
     },
     {
       id: "medical",
-      icon: "🏥",
-      title: "Healthcare Environment",
-      desc: "Master specialized medical triage and consent terminology.",
+      icon: <Building2 size={32} strokeWidth={1.5} />,
+      title: "Medical & Clinical",
+      desc: "Master specialized healthcare vocabulary and patient triage terminology.",
       color: "#ec4899"
     },
     {
       id: "speed",
-      icon: "⚡",
-      title: "Fluency & Core Speed",
-      desc: "Use AI visual heatmaps to analyze your motion and speed.",
+      icon: <Zap size={32} strokeWidth={1.5} />,
+      title: "Fluency & Speed",
+      desc: "Use AI visual heatmaps to analyze your hand motion and signing speed.",
       color: "#f59e0b"
     }
   ];
 
   return (
-    <div className="bg-subtle" style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 20px" }}>
-      <div className="card glass" style={{ maxWidth: "800px", width: "100%", padding: "48px", textAlign: "center", position: "relative", overflow: "hidden" }}>
-
-        {/* Decorative background blur */}
-        <div style={{ position: "absolute", top: "-100px", right: "-100px", width: "300px", height: "300px", background: "var(--accent)", filter: "blur(100px)", opacity: 0.2, zIndex: 0 }}></div>
-        <div style={{ position: "absolute", bottom: "-100px", left: "-100px", width: "300px", height: "300px", background: "#ec4899", filter: "blur(100px)", opacity: 0.1, zIndex: 0 }}></div>
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyItems: "center", padding: "40px 20px" }}>
+      <div className="card-outer container" style={{ maxWidth: "800px", padding: "64px", textAlign: "center" }}>
 
         <div style={{ position: "relative", zIndex: 1 }}>
-          <div className="badge" style={{ margin: "0 auto 24px", background: "var(--accent-bg)", color: "var(--accent)" }}>Welcome to SignSync</div>
-          <h1 style={{ fontSize: "36px", marginBottom: "16px" }}>Let's customize your experience.</h1>
-          <p style={{ fontSize: "16px", color: "var(--text)", marginBottom: "40px", maxWidth: "500px", margin: "0 auto 40px" }}>
-            To ensure our AI provides the most relevant curriculum and tracking data, what is your primary reason for learning ASL today?
+          <div className="badge flex items-center gap-2 justify-center" style={{ margin: "0 auto 24px", width: "max-content", background: "var(--color-brand-light)", color: "var(--color-brand-dark)", borderColor: "var(--color-brand)" }}>
+             <Zap size={14}/> Welcome to SignSync
+          </div>
+          <h1 style={{ fontSize: "var(--text-2xl)", marginBottom: "16px" }}>Choose Your Learning Path</h1>
+          <p className="text-muted" style={{ margin: "0 auto 48px", maxWidth: "540px" }}>
+            To personalize your curriculum, please select your primary reason for learning ASL.
           </p>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "24px", marginBottom: "48px" }}>
+          <div className="grid" style={{ gap: "24px", marginBottom: "48px" }}>
             {goals.map((goal) => (
               <div
                 key={goal.id}
                 onClick={() => setSelectedGoal(goal.id)}
+                className="card-inner flex flex-col items-center"
                 style={{
-                  background: selectedGoal === goal.id ? `rgba(${parseInt(goal.color.slice(1, 3), 16)}, ${parseInt(goal.color.slice(3, 5), 16)}, ${parseInt(goal.color.slice(5, 7), 16)}, 0.1)` : "var(--bg-subtle)",
-                  border: selectedGoal === goal.id ? `2px solid ${goal.color}` : "2px solid transparent",
+                  background: selectedGoal === goal.id ? "var(--color-brand-light)" : "var(--color-overlay)",
+                  borderColor: selectedGoal === goal.id ? "var(--color-brand)" : "var(--color-border)",
                   padding: "32px 24px",
-                  borderRadius: "20px",
                   cursor: "pointer",
-                  transition: "all 0.2s ease-in-out",
+                  transition: "all var(--transition-base)",
                   transform: selectedGoal === goal.id ? "translateY(-4px)" : "none",
-                  boxShadow: selectedGoal === goal.id ? `0 10px 30px rgba(${parseInt(goal.color.slice(1, 3), 16)}, ${parseInt(goal.color.slice(3, 5), 16)}, ${parseInt(goal.color.slice(5, 7), 16)}, 0.2)` : "none"
+                  boxShadow: selectedGoal === goal.id ? "var(--shadow-md)" : "none"
                 }}
               >
-                <div style={{ fontSize: "40px", marginBottom: "16px" }}>{goal.icon}</div>
-                <h3 style={{ fontSize: "18px", marginBottom: "12px" }}>{goal.title}</h3>
-                <p style={{ fontSize: "13px", color: "var(--text)", lineHeight: "1.5" }}>{goal.desc}</p>
+                <div style={{ marginBottom: "20px", color: selectedGoal === goal.id ? goal.color : "var(--color-text-secondary)" }}>{goal.icon}</div>
+                <h3 style={{ fontSize: "var(--text-base)", marginBottom: "12px", color: selectedGoal === goal.id ? "var(--color-brand-dark)" : "var(--color-text-primary)" }}>{goal.title}</h3>
+                <p className="text-sm" style={{ color: selectedGoal === goal.id ? "var(--color-brand-dark)" : "var(--color-text-muted)" }}>{goal.desc}</p>
               </div>
             ))}
           </div>
 
           <button
-            className="primary"
             disabled={!selectedGoal || submitting}
             onClick={handleStart}
             style={{
               padding: "16px 48px",
-              fontSize: "16px",
               width: "auto",
               opacity: !selectedGoal ? 0.5 : 1
             }}
           >
-            {submitting ? "Preparing your Dashboard..." : "Continue to Dashboard →"}
+            {submitting ? "Preparing Dashboard..." : "Continue to Dashboard"}
           </button>
         </div>
       </div>

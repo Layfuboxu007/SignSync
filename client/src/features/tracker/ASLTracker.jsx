@@ -27,7 +27,7 @@ export default function ASLTracker() {
     if (score >= 100 && !completed && !isAdvancing) {
       setIsAdvancing(true);
       if (currentIndex < curriculum.length - 1) {
-        setGesture(`✅ Detected! Loading ${curriculum[currentIndex + 1]}...`);
+        setGesture(`Detected! Loading ${curriculum[currentIndex + 1]}...`);
         setTimeout(() => {
           setScore(0);
           setCurrentIndex(c => c + 1);
@@ -35,7 +35,7 @@ export default function ASLTracker() {
         }, 1200);
       } else {
         setCompleted(true);
-        setGesture("✅ COURSE COMPLETE");
+        setGesture("COURSE COMPLETE");
       }
     }
   }, [score, completed, isAdvancing, currentIndex, curriculum]);
@@ -280,7 +280,7 @@ export default function ASLTracker() {
     }
 
     if (isMatch) {
-      setGesture(`🎯 MATCHED: '${targetSign}'`);
+      setGesture(`MATCHED: '${targetSign}'`);
       setScore(prev => Math.min(prev + 10, 100));
     } else if (!isAdvancing) {
       setGesture(`Tracking active... Make sign: '${targetSign}'`);
@@ -288,28 +288,41 @@ export default function ASLTracker() {
   };
 
   return (
-    <div className="bg-subtle" style={{ minHeight: "100vh", padding: "40px 20px" }}>
-      <div className="container" style={{ maxWidth: "1000px" }}>
+    <div style={{ minHeight: "100vh", padding: "40px 20px" }}>
+      <style>{`
+        .tracker-layout {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 24px;
+        }
+        @media (min-width: 1024px) {
+          .tracker-layout {
+            grid-template-columns: 1fr 320px;
+          }
+        }
+      `}</style>
+      <div className="container" style={{ maxWidth: "1200px" }}>
         
-        <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "40px" }}>
+        <header style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "16px", marginBottom: "40px" }}>
            <div>
              <div className="badge" style={{ marginBottom: "16px" }}>PRACTICE ROOM</div>
-             <h1 style={{ fontSize: "32px", marginBottom: "4px" }}>AI Video Tracker Module</h1>
-             <p style={{ color: "var(--text)" }}>Lesson: Open Source Hands-On Testing</p>
+             <h1 style={{ fontSize: "var(--text-xl)", marginBottom: "4px" }}>AI Video Tracker</h1>
+             <p className="text-muted text-sm">Lesson Focus: Hands-On Practice</p>
            </div>
-           <Link to="/dashboard" className="secondary" style={{ padding: "12px 24px", textDecoration: "none" }}>
+           <Link to="/courses" className="secondary" style={{ padding: "10px 20px", textDecoration: "none", borderRadius: "var(--radius-sm)" }}>
              Exit Session
            </Link>
         </header>
 
-        <section style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: "24px" }}>
+        <section className="tracker-layout">
            {/* Camera Feed */}
-           <div className="card glass" style={{ position: "relative", minHeight: "500px", overflow: "hidden", padding: 0 }}>
+           <div className="card-outer" style={{ position: "relative", minHeight: "600px", padding: 0, overflow: "hidden", borderRadius: "var(--radius-xl)" }}>
              {loading ? (
-                <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", zIndex: 10, background: "rgba(255,255,255,0.8)", backdropFilter: "blur(10px)" }}>
-                   <div style={{ fontSize: "48px", animation: "pulse 2s infinite" }}>🧠</div>
-                   <h2 style={{ marginTop: "16px" }}>Loading TensorFlow Model...</h2>
-                   <p style={{ color: "var(--text)" }}>This runs entirely in your browser using GPU acceleration.</p>
+                <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", zIndex: 10, background: "rgba(255,255,255,0.9)", backdropFilter: "blur(8px)" }}>
+                   <div style={{ width: "48px", height: "48px", border: "4px solid var(--color-border)", borderTopColor: "var(--color-brand)", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+                   <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
+                   <h2 style={{ marginTop: "24px", fontSize: "var(--text-lg)" }}>Loading AI Models...</h2>
+                   <p className="text-muted text-sm text-center" style={{ maxWidth: "400px", marginTop: "8px" }}>Initializing hardware acceleration for browser-based tracking.</p>
                 </div>
              ) : null}
 
@@ -317,30 +330,28 @@ export default function ASLTracker() {
                 ref={webcamRef}
                 style={{
                   position: "absolute",
-                  marginLeft: "auto",
-                  marginRight: "auto",
                   left: 0,
                   right: 0,
-                  textAlign: "center",
-                  zIndex: 1,
+                  top: 0,
                   width: "100%",
                   height: "100%",
-                  objectFit: "cover"
+                  objectFit: "cover",
+                  zIndex: 1,
+                  transform: "scaleX(-1)" // Mirroring webcam for better UX
                 }}
              />
              <canvas
                 ref={canvasRef}
                 style={{
                   position: "absolute",
-                  marginLeft: "auto",
-                  marginRight: "auto",
                   left: 0,
                   right: 0,
-                  textAlign: "center",
-                  zIndex: 2,
+                  top: 0,
                   width: "100%",
                   height: "100%",
-                  objectFit: "cover"
+                  objectFit: "cover",
+                  zIndex: 2,
+                  transform: "scaleX(-1)"
                 }}
              />
            </div>
@@ -348,40 +359,44 @@ export default function ASLTracker() {
            {/* Metrics Sidebar */}
            <aside style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
              
-             {completed ? (
-               <div className="card" style={{ background: "rgba(16, 185, 129, 0.1)", border: "2px solid #10b981", textAlign: "center" }}>
-                 <div style={{ fontSize: "40px", marginBottom: "16px" }}>🏅</div>
-                 <h2 style={{ color: "#10b981", marginBottom: "8px" }}>Module Mastered!</h2>
-                 <p style={{ fontSize: "14px", color: "var(--text)", marginBottom: "24px" }}>You successfully passed the AI accuracy check for all signs in this module.</p>
+              {completed ? (
+               <div className="card-outer" style={{ background: "var(--color-brand-light)", borderColor: "var(--color-brand-dark)", textAlign: "center" }}>
+                 <div style={{ width: "64px", height: "64px", margin: "0 auto 16px", borderRadius: "50%", background: "var(--color-brand)", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                 </div>
+                 <h2 style={{ color: "var(--color-brand-dark)", fontSize: "var(--text-lg)", marginBottom: "8px" }}>Lesson Completed</h2>
+                 <p style={{ fontSize: "var(--text-sm)", color: "var(--color-text-secondary)", marginBottom: "24px" }}>You successfully passed the AI accuracy check for all signs in this lesson.</p>
                  <Link to="/courses">
-                   <button style={{ width: "100%", padding: "14px" }}>Back to Course Hub</button>
+                   <button style={{ width: "100%" }}>Return to Courses</button>
                  </Link>
                </div>
              ) : (
                <>
-                 <div className="card" style={{ textAlign: "center" }}>
-                   <p style={{ fontSize: "14px", color: "var(--text)", fontWeight: "600", marginBottom: "4px" }}>Current Target</p>
-                   <div style={{ fontSize: "48px", fontWeight: "800", color: "var(--accent)", margin: "16px 0" }}>{targetSign}</div>
-                   <h3 style={{ color: gesture.includes("MATCHED") ? "var(--accent)" : "var(--text-h)" }}>{gesture}</h3>
+                 <div className="card-outer flex flex-col items-center justify-center text-center">
+                   <p className="text-muted font-semibold text-xs mb-2">TARGET SIGN</p>
+                   <div style={{ fontSize: "var(--text-3xl)", fontWeight: "800", color: "var(--color-text-primary)", margin: "16px 0" }}>{targetSign}</div>
+                   <h3 style={{ fontSize: "var(--text-sm)", color: gesture.includes("MATCHED") ? "var(--color-brand)" : "var(--color-text-secondary)" }}>{gesture}</h3>
                  </div>
 
-                 <div className="card">
-                   <p style={{ fontSize: "14px", color: "var(--text)", fontWeight: "600", marginBottom: "8px" }}>Mastery Score</p>
-                   <div style={{ height: "8px", background: "var(--bg-subtle)", borderRadius: "4px", marginBottom: "8px" }}>
-                      <div style={{ background: "var(--accent)", width: `${score}%`, height: "100%", borderRadius: "4px", transition: "width 0.3s" }}></div>
+                 <div className="card-outer">
+                   <p className="text-muted font-semibold text-xs mb-4">ACCURACY</p>
+                   <div style={{ height: "6px", background: "var(--color-overlay)", borderRadius: "var(--radius-full)", marginBottom: "12px", overflow: "hidden" }}>
+                      <div style={{ background: "var(--color-brand)", width: `${score}%`, height: "100%", transition: "width 0.2s ease-out" }}></div>
                    </div>
-                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: "14px" }}>
-                     <span style={{ fontWeight: "700" }}>{score}% Accuracy</span>
-                     <span style={{ color: "var(--text)" }}>Hold Form</span>
+                   <div className="flex justify-between text-sm">
+                     <span className="font-semibold">{score}% Matched</span>
+                     <span className="text-muted">Hold Form</span>
                    </div>
                  </div>
 
-                 <div className="card" style={{ marginTop: "auto", background: "var(--accent-bg)" }}>
-                    <p style={{ fontSize: "12px", color: "var(--accent)", fontWeight: "700", marginBottom: "8px" }}>CURRICULUM PROGRESS</p>
-                    <p style={{ fontSize: "14px", marginBottom: "12px" }}>Sign <strong>{currentIndex + 1}</strong> out of <strong>{curriculum.length}</strong></p>
-                    <div style={{ display: "flex", gap: "4px" }}>
+                 <div className="card-inner" style={{ marginTop: "auto" }}>
+                    <div className="flex items-center justify-between" style={{ marginBottom: "16px" }}>
+                       <p style={{ fontSize: "var(--text-xs)", color: "var(--color-text-primary)", fontWeight: "700" }}>PROGRESS</p>
+                       <p style={{ fontSize: "var(--text-xs)", color: "var(--color-text-muted)" }}>{currentIndex + 1} of {curriculum.length}</p>
+                    </div>
+                    <div style={{ display: "flex", gap: "6px" }}>
                       {curriculum.map((item, idx) => (
-                        <div key={idx} style={{ flex: 1, height: "4px", background: idx < currentIndex ? "var(--accent)" : "rgba(20, 184, 166, 0.2)", borderRadius: "2px" }}></div>
+                        <div key={idx} style={{ flex: 1, height: "4px", background: idx < currentIndex ? "var(--color-brand)" : "var(--color-border)", borderRadius: "var(--radius-full)" }}></div>
                       ))}
                     </div>
                  </div>

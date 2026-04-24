@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase, API } from "../../api";
 import { useNavigate, Link } from "react-router-dom";
+import { GraduationCap, GraduationCap as Teacher } from "lucide-react";
 
 function Register() {
   const [firstName, setFirstName] = useState("");
@@ -11,6 +12,7 @@ function Register() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -18,13 +20,13 @@ function Register() {
     e.preventDefault();
     setErrorMsg("");
 
-    if (!/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(email)) {
+    if (!/^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/.test(email)) {
       setErrorMsg("Please enter a valid email address.");
       return;
     }
 
     if (password.length < 8 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password) || !/[^a-zA-Z0-9]/.test(password)) {
-      setErrorMsg("Password must be at least 8 characters, with at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character.");
+      setErrorMsg("Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character.");
       return;
     }
 
@@ -49,7 +51,6 @@ function Register() {
       });
       if (error) throw error;
       
-      // Optionally sync to the public users table for backwards compatibility
       if (data?.user) {
         try {
           await API.post("/sync-user", {
@@ -64,137 +65,93 @@ function Register() {
         }
       }
 
-      alert("Registration successful! Please login.");
-      navigate("/login");
+      setSuccessMsg("Account created successfully! Redirecting...");
+      setTimeout(() => navigate("/login"), 1500);
     } catch (err) {
-      setErrorMsg(err.message || "Registration failed");
+      setErrorMsg(err.message || "Registration failed. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="auth-page">
-      <div className="auth-card" style={{ maxWidth: "500px" }}>
-        <div className="auth-header">
-          <h2>Create Free Account</h2>
-          <p>Start your journey to visual fluency today.</p>
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 20px" }}>
+      <div className="card-outer animate-fade-in" style={{ maxWidth: "540px", width: "100%", padding: "48px" }}>
+        <div style={{ textAlign: "center", marginBottom: "32px" }}>
+          <h2 style={{ fontSize: "var(--text-xl)", marginBottom: "8px" }}>Create Free Account</h2>
+          <p className="text-muted text-sm">Start your journey to visual fluency today.</p>
         </div>
 
-        <div style={{ display: "flex", gap: "12px", marginBottom: "24px" }}>
-          <button className="secondary" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", flex: 1 }}>
-            <img src="https://img.icons8.com/color/24/000000/google-logo.png" alt="Google" style={{ width: "18px" }} />
-            Google
-          </button>
-          <button className="secondary" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", flex: 1 }}>
-            <img src="https://img.icons8.com/ios-filled/24/000000/mac-os.png" alt="Apple" style={{ width: "18px" }} />
-            Apple
-          </button>
-        </div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", margin: "24px 0", opacity: 0.3 }}>
-          <hr style={{ flex: 1, border: "0.5px solid var(--border)" }} />
-          <span style={{ fontSize: "12px", fontWeight: "600" }}>OR</span>
-          <hr style={{ flex: 1, border: "0.5px solid var(--border)" }} />
-        </div>
-
-        <form className="auth-form" onSubmit={handleRegister} style={{ textAlign: "left" }}>
+        <form onSubmit={handleRegister} style={{ textAlign: "left" }}>
           
           {errorMsg && (
-            <div style={{ background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", padding: "12px", borderRadius: "8px", fontSize: "14px", marginBottom: "24px", border: "1px solid rgba(239, 68, 68, 0.2)" }}>
-              ⚠️ {errorMsg}
+            <div className="card-inner text-sm" style={{ background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", borderColor: "rgba(239, 68, 68, 0.3)", marginBottom: "24px" }}>
+              Error: {errorMsg}
+            </div>
+          )}
+          {successMsg && (
+            <div className="card-inner text-sm" style={{ background: "rgba(16, 185, 129, 0.1)", color: "#10b981", borderColor: "rgba(16, 185, 129, 0.3)", marginBottom: "24px", textAlign: "center" }}>
+              {successMsg}
             </div>
           )}
 
-          <div style={{ display: "flex", gap: "16px", marginBottom: "24px" }}>
+          <div style={{ display: "flex", gap: "16px", marginBottom: "32px" }}>
             <div 
               onClick={() => setRole("learner")}
-              style={{ flex: 1, padding: "16px", borderRadius: "12px", border: role === "learner" ? "2px solid var(--accent)" : "2px solid var(--border)", background: role === "learner" ? "var(--accent-bg)" : "transparent", cursor: "pointer", textAlign: "center", transition: "all 0.2s" }}
+              style={{ flex: 1, padding: "20px", borderRadius: "var(--radius-md)", border: role === "learner" ? "2px solid var(--color-brand)" : "2px solid var(--color-border)", background: role === "learner" ? "var(--color-brand-light)" : "var(--color-surface)", cursor: "pointer", textAlign: "center", transition: "all 0.2s" }}
             >
-              <div style={{ fontSize: "24px", marginBottom: "8px" }}>🎓</div>
-              <div style={{ fontSize: "14px", fontWeight: "600", color: role === "learner" ? "var(--accent)" : "var(--text)" }}>I am a Student</div>
+              <div className="flex justify-center" style={{ marginBottom: "12px", color: role === "learner" ? "var(--color-brand)" : "var(--color-text-muted)" }}><GraduationCap size={28} strokeWidth={1.5}/></div>
+              <div style={{ fontSize: "var(--text-sm)", fontWeight: "600", color: role === "learner" ? "var(--color-brand-dark)" : "var(--color-text-secondary)" }}>Learner Account</div>
             </div>
             <div 
               onClick={() => setRole("instructor")}
-              style={{ flex: 1, padding: "16px", borderRadius: "12px", border: role === "instructor" ? "2px solid var(--accent)" : "2px solid var(--border)", background: role === "instructor" ? "var(--accent-bg)" : "transparent", cursor: "pointer", textAlign: "center", transition: "all 0.2s" }}
+              style={{ flex: 1, padding: "20px", borderRadius: "var(--radius-md)", border: role === "instructor" ? "2px solid var(--color-brand)" : "2px solid var(--color-border)", background: role === "instructor" ? "var(--color-brand-light)" : "var(--color-surface)", cursor: "pointer", textAlign: "center", transition: "all 0.2s" }}
             >
-              <div style={{ fontSize: "24px", marginBottom: "8px" }}>🧑‍🏫</div>
-              <div style={{ fontSize: "14px", fontWeight: "600", color: role === "instructor" ? "var(--accent)" : "var(--text)" }}>I am an Instructor</div>
+              <div className="flex justify-center" style={{ marginBottom: "12px", color: role === "instructor" ? "var(--color-brand)" : "var(--color-text-muted)" }}><Teacher size={28} strokeWidth={1.5}/></div>
+              <div style={{ fontSize: "var(--text-sm)", fontWeight: "600", color: role === "instructor" ? "var(--color-brand-dark)" : "var(--color-text-secondary)" }}>Instructor Account</div>
             </div>
           </div>
           
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
+          <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "20px" }}>
             <div>
-              <label style={{ display: "block", fontSize: "14px", fontWeight: "600", marginBottom: "8px", color: "var(--text-h)" }}>First Name</label>
-              <input type="text" placeholder="Jane" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
+              <label style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: "700", marginBottom: "8px", color: "var(--color-text-muted)", letterSpacing: "0.05em" }}>FIRST NAME</label>
+              <input type="text" placeholder="First Name" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
             </div>
             <div>
-              <label style={{ display: "block", fontSize: "14px", fontWeight: "600", marginBottom: "8px", color: "var(--text-h)" }}>Last Name</label>
-              <input type="text" placeholder="Doe" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
+              <label style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: "700", marginBottom: "8px", color: "var(--color-text-muted)", letterSpacing: "0.05em" }}>LAST NAME</label>
+              <input type="text" placeholder="Last Name" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
             </div>
           </div>
           
-          <div style={{ marginBottom: "16px" }}>
-            <label style={{ display: "block", fontSize: "14px", fontWeight: "600", marginBottom: "8px", color: "var(--text-h)" }}>
-              Username
-            </label>
-            <input
-              type="text"
-              placeholder="Pick a unique username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-            />
+          <div style={{ marginBottom: "20px" }}>
+            <label style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: "700", marginBottom: "8px", color: "var(--color-text-muted)", letterSpacing: "0.05em" }}>USERNAME</label>
+            <input type="text" placeholder="Pick a username" value={username} onChange={(e) => setUsername(e.target.value)} required />
           </div>
 
-          <div style={{ marginBottom: "16px" }}>
-            <label style={{ display: "block", fontSize: "14px", fontWeight: "600", marginBottom: "8px", color: "var(--text-h)" }}>
-              Email Address
-            </label>
-            <input
-              type="email"
-              placeholder="name@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+          <div style={{ marginBottom: "20px" }}>
+            <label style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: "700", marginBottom: "8px", color: "var(--color-text-muted)", letterSpacing: "0.05em" }}>EMAIL ADDRESS</label>
+            <input type="email" placeholder="name@domain.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "24px" }}>
+          <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "32px" }}>
             <div>
-              <label style={{ display: "block", fontSize: "14px", fontWeight: "600", marginBottom: "8px", color: "var(--text-h)" }}>
-                Password
-              </label>
-              <input
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+              <label style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: "700", marginBottom: "8px", color: "var(--color-text-muted)", letterSpacing: "0.05em" }}>PASSWORD</label>
+              <input type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
             <div>
-              <label style={{ display: "block", fontSize: "14px", fontWeight: "600", marginBottom: "8px", color: "var(--text-h)" }}>
-                Confirm
-              </label>
-              <input
-                type="password"
-                placeholder="••••••••"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-              />
+              <label style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: "700", marginBottom: "8px", color: "var(--color-text-muted)", letterSpacing: "0.05em" }}>CONFIRM PASSWORD</label>
+              <input type="password" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
             </div>
           </div>
 
-          <button type="submit" disabled={loading} style={{ padding: "14px" }}>
-            {loading ? "Creating account..." : "Create Account"}
+          <button type="submit" disabled={loading} style={{ width: "100%", padding: "16px", fontSize: "var(--text-sm)" }}>
+            {loading ? "Creating Account..." : "Create Account"}
           </button>
         </form>
 
-        <div className="auth-footer" style={{ marginTop: "32px" }}>
-          <p style={{ fontSize: "14px" }}>
-            Already have an account? <Link to="/login">Log in</Link>
+        <div style={{ marginTop: "32px", textAlign: "center" }}>
+          <p className="text-muted text-sm">
+            Already have an account? <Link to="/login">Sign in here</Link>
           </p>
         </div>
       </div>

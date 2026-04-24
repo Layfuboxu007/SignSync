@@ -14,7 +14,7 @@ function Login() {
     setErrorMsg("");
 
     if (!username || !password) {
-      setErrorMsg("Please enter both your username and password.");
+      setErrorMsg("Please enter both your email/username and password.");
       return;
     }
 
@@ -22,13 +22,12 @@ function Login() {
     try {
       let loginEmail = username;
       
-      // If no @ symbol, assume it's a username and lookup the email
       if (!loginEmail.includes('@')) {
          try {
            const res = await API.post("/lookup-email", { username });
            loginEmail = res.data.email;
          } catch (e) {
-           throw new Error(e.response?.data?.error || e.message || "Username not found");
+           throw new Error(e.response?.data?.error || e.message || "Username not found in system");
          }
       }
 
@@ -49,60 +48,58 @@ function Login() {
         }
       }
     } catch (err) {
-      setErrorMsg(err.message || "Login failed");
+      setErrorMsg(err.message || "Login failed. Please check your credentials.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="auth-page">
-      <div className="auth-card" style={{ maxWidth: "500px" }}>
-        <div className="auth-header">
-          <h2>Welcome Back</h2>
-          <p>Please enter your details to sign in.</p>
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
+      <div className="card-outer animate-fade-in" style={{ maxWidth: "440px", width: "100%", padding: "48px" }}>
+        <div style={{ textAlign: "center", marginBottom: "32px" }}>
+          <h2 style={{ fontSize: "var(--text-xl)", marginBottom: "8px" }}>Welcome Back</h2>
+          <p className="text-muted text-sm">Please sign in to access your dashboard.</p>
         </div>
 
         <div style={{ display: "flex", gap: "12px", marginBottom: "24px" }}>
-          <button className="secondary" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", flex: 1 }}>
-            <img src="https://img.icons8.com/color/24/000000/google-logo.png" alt="Google" style={{ width: "18px" }} />
-            Google
+          <button className="secondary" style={{ flex: 1, padding: "10px" }}>
+            <span style={{ fontSize: "14px" }}>Google</span>
           </button>
-          <button className="secondary" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", flex: 1 }}>
-            <img src="https://img.icons8.com/ios-filled/24/000000/mac-os.png" alt="Apple" style={{ width: "18px" }} />
-            Apple
+          <button className="secondary" style={{ flex: 1, padding: "10px" }}>
+            <span style={{ fontSize: "14px" }}>Apple</span>
           </button>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", margin: "24px 0", opacity: 0.3 }}>
-          <hr style={{ flex: 1, border: "0.5px solid var(--border)" }} />
-          <span style={{ fontSize: "12px", fontWeight: "600" }}>OR</span>
-          <hr style={{ flex: 1, border: "0.5px solid var(--border)" }} />
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", margin: "24px 0" }}>
+          <hr style={{ flex: 1, border: "0", borderTop: "1px solid var(--color-border)" }} />
+          <span className="text-muted" style={{ fontSize: "11px", fontWeight: "700", letterSpacing: "0.05em" }}>OR</span>
+          <hr style={{ flex: 1, border: "0", borderTop: "1px solid var(--color-border)" }} />
         </div>
 
-        <form className="auth-form" onSubmit={handleLogin} style={{ textAlign: "left" }}>
+        <form onSubmit={handleLogin} style={{ textAlign: "left" }}>
           {errorMsg && (
-            <div style={{ background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", padding: "12px", borderRadius: "8px", fontSize: "14px", marginBottom: "24px", border: "1px solid rgba(239, 68, 68, 0.2)" }}>
-              ⚠️ {errorMsg}
+            <div className="card-inner text-sm" style={{ background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", borderColor: "rgba(239, 68, 68, 0.3)", marginBottom: "24px" }}>
+              Error: {errorMsg}
             </div>
           )}
 
           <div style={{ marginBottom: "20px" }}>
-            <label style={{ display: "block", fontSize: "14px", fontWeight: "600", marginBottom: "8px", color: "var(--text-h)" }}>
-              Username or Email
+            <label style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: "700", marginBottom: "8px", color: "var(--color-text-muted)", letterSpacing: "0.05em" }}>
+              USERNAME OR EMAIL
             </label>
             <input
               type="text"
-              placeholder="Enter your username"
+              placeholder="Your username or email address"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
             />
           </div>
 
-          <div style={{ marginBottom: "20px" }}>
-            <label style={{ display: "block", fontSize: "14px", fontWeight: "600", marginBottom: "8px", color: "var(--text-h)" }}>
-              Password
+          <div style={{ marginBottom: "24px" }}>
+            <label style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: "700", marginBottom: "8px", color: "var(--color-text-muted)", letterSpacing: "0.05em" }}>
+              PASSWORD
             </label>
             <input
               type="password"
@@ -113,24 +110,24 @@ function Login() {
             />
           </div>
 
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
-            <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", cursor: "pointer" }}>
-              <input type="checkbox" style={{ width: "16px", height: "16px" }} />
-              Remember for 30 days
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" }}>
+            <label className="text-muted flex items-center gap-2" style={{ fontSize: "var(--text-xs)", cursor: "pointer", fontWeight: "500" }}>
+              <input type="checkbox" style={{ width: "16px", height: "16px", accentColor: "var(--color-brand)" }} />
+              Remember me
             </label>
-            <Link to="/forgot-password" style={{ fontSize: "14px" }}>
+            <Link to="/forgot-password" style={{ fontSize: "var(--text-xs)" }}>
               Forgot Password?
             </Link>
           </div>
 
-          <button type="submit" disabled={loading} style={{ padding: "14px" }}>
+          <button type="submit" disabled={loading} style={{ width: "100%", padding: "14px", fontSize: "var(--text-sm)" }}>
             {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
 
-        <div className="auth-footer" style={{ marginTop: "32px" }}>
-          <p style={{ fontSize: "14px" }}>
-            Don't have an account? <Link to="/register">Sign up</Link>
+        <div style={{ marginTop: "32px", textAlign: "center" }}>
+          <p className="text-muted text-sm">
+            Don't have an account? <Link to="/register">Create an account</Link>
           </p>
         </div>
       </div>

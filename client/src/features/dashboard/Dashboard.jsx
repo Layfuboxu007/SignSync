@@ -1,98 +1,103 @@
 import { useNavigate, Link } from "react-router-dom";
 import { useUserStore } from "../../store/userStore";
 import DashboardLayout from "../../layouts/DashboardLayout";
+import { User, Trophy, Target, HandMetal } from "lucide-react";
 
 function Dashboard() {
   const navigate = useNavigate();
   const { profile } = useUserStore();
-  const currentUser = profile?.first_name || profile?.username || "";
+  const currentUser = profile?.first_name || profile?.username || "Learner";
 
   const learningPaths = [
-    { title: "ASL Beginner Foundations", modules: "12 Modules", level: "Lvl 1", progress: 65, color: "var(--accent)" },
-    { title: "Conversational Flow", modules: "8 Modules", level: "Lvl 2", progress: 10, color: "#0ea5e9" },
-    { title: "Storytelling & Nuance", modules: "10 Modules", level: "Lvl 3", progress: 0, color: "#6366f1" },
+    { title: "ASL Beginner Foundations", modules: "12 Modules", level: "Lvl 1", progress: 65, color: "var(--color-brand)" },
+    { title: "Conversational Flow", modules: "8 Modules", level: "Lvl 2", progress: 10, color: "hsl(200, 80%, 40%)" },
+    { title: "Storytelling & Nuance", modules: "10 Modules", level: "Lvl 3", progress: 0, color: "hsl(245, 80%, 60%)" },
   ];
 
   return (
     <DashboardLayout>
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <header className="flex justify-between items-center animate-fade-in" style={{ flexWrap: "wrap", gap: "16px" }}>
         <div>
-          <h1 style={{ fontSize: "32px", marginBottom: "4px" }}>Welcome back, {currentUser}!</h1>
-          <p style={{ color: "var(--text)" }}>You're making great progress. Ready for today's lesson?</p>
+          <h1 style={{ fontSize: "var(--text-xl)", marginBottom: "4px" }}>Welcome back, {currentUser}!</h1>
+          <p className="text-muted text-sm">You are making excellent progress. Ready for today's lesson?</p>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+        <div className="flex items-center gap-4">
           <div style={{ textAlign: "right" }}>
-            <p style={{ fontWeight: "700", fontSize: "14px", color: "var(--text-h)" }}>{currentUser}</p>
-            <p style={{ fontSize: "12px", color: "var(--text)" }}>Premium Learner</p>
+            <p style={{ fontWeight: "600", fontSize: "var(--text-sm)", color: "var(--color-text-primary)" }}>{currentUser}</p>
+            <p style={{ fontSize: "var(--text-xs)", color: "var(--color-text-muted)" }}>Premium Account</p>
           </div>
-          <div style={{ width: "48px", height: "48px", borderRadius: "50%", background: "var(--accent-bg)", display: "flex", justifyContent: "center", alignItems: "center", fontSize: "20px", border: "2px solid #fff" }}>
-            👤
+          <div style={{ width: "48px", height: "48px", borderRadius: "var(--radius-full)", background: "var(--color-canvas)", border: "1px solid var(--color-border-strong)", display: "flex", justifyContent: "center", alignItems: "center", color: "var(--color-text-primary)", boxShadow: "var(--shadow-sm)" }}>
+            <User size={20} />
           </div>
         </div>
       </header>
 
-      <section style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
-        <div className="card" style={{ display: "flex", gap: "24px", alignItems: "center", background: "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)", color: "#fff", border: "none" }}>
+      <section className="grid animate-fade-in" style={{ animationDelay: "0.1s" }}>
+        <div className="card-outer" style={{ display: "flex", gap: "24px", alignItems: "center", background: "linear-gradient(135deg, var(--color-brand) 0%, var(--color-brand-dark) 100%)", color: "#fff", borderColor: "var(--color-brand-dark)" }}>
           <div style={{ flex: 1 }}>
-            <div className="badge" style={{ background: "rgba(255,255,255,0.2)", color: "#fff" }}>Current Level</div>
-            <h2 style={{ color: "#fff", fontSize: "28px", margin: "8px 0" }}>Level 1: <br/>Fluent Basics</h2>
-            <div style={{ height: "6px", background: "rgba(255,255,255,0.2)", borderRadius: "3px", margin: "16px 0 8px" }}>
-              <div style={{ width: "65%", height: "100%", background: "#fff", borderRadius: "3px" }}></div>
+            <div className="badge" style={{ background: "rgba(255,255,255,0.15)", color: "#fff", borderColor: "rgba(255,255,255,0.3)" }}>CURRENT LEVEL</div>
+            <h2 style={{ color: "#fff", fontSize: "var(--text-xl)", margin: "8px 0" }}>Level 1: <br/>Fluent Basics</h2>
+            <div style={{ height: "6px", background: "rgba(255,255,255,0.15)", borderRadius: "var(--radius-full)", margin: "16px 0 8px" }}>
+              <div style={{ width: "65%", height: "100%", background: "#fff", borderRadius: "var(--radius-full)" }}></div>
             </div>
-            <p style={{ fontSize: "12px", opacity: 0.8 }}>65% to Level 2</p>
+            <p style={{ fontSize: "var(--text-xs)", opacity: 0.8 }}>65% progress to Level 2</p>
           </div>
-          <div style={{ fontSize: "64px", opacity: 0.5 }}>🏆</div>
+          <div style={{ opacity: 0.3, color: "#fff" }}>
+            <Trophy size={64} strokeWidth={1} />
+          </div>
         </div>
 
-        <div className="card" style={{ display: "flex", gap: "24px", alignItems: "center" }}>
+        <div className="card-outer" style={{ display: "flex", gap: "24px", alignItems: "center" }}>
           <div style={{ flex: 1 }}>
-            <div className="badge" style={{ background: "var(--secondary-bg)", color: "var(--secondary)" }}>Stats</div>
-            <h2 style={{ fontSize: "28px", margin: "8px 0" }}>14 Lessons <br/>Completed</h2>
-            <p style={{ fontSize: "14px", color: "var(--text)" }}>+2 since yesterday</p>
-            <Link to="/history" style={{ display: "inline-block", marginTop: "12px", fontSize: "14px" }}>View detailed history →</Link>
+            <div className="badge" style={{ background: "var(--color-overlay)", borderColor: "var(--color-border-strong)" }}>ANALYTICS</div>
+            <h2 style={{ fontSize: "var(--text-xl)", margin: "8px 0" }}>14 Modules <br/>Completed</h2>
+            <p style={{ fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>+2 since yesterday</p>
+            <Link to="/history" style={{ display: "inline-block", marginTop: "12px", fontSize: "var(--text-sm)", fontWeight: "600" }}>View detailed history →</Link>
           </div>
-          <div style={{ fontSize: "64px" }}>🎯</div>
+          <div style={{ color: "var(--color-brand-light)" }}>
+            <Target size={64} strokeWidth={1.5} color="var(--color-brand)" />
+          </div>
         </div>
       </section>
 
-      <section>
+      <section className="animate-fade-in" style={{ animationDelay: "0.2s" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-          <h2 style={{ fontSize: "22px" }}>Continue Learning</h2>
-          <Link to="/courses" style={{ fontSize: "14px" }}>View all paths</Link>
+          <h2 style={{ fontSize: "var(--text-lg)" }}>Continue Learning</h2>
+          <Link to="/courses" style={{ fontSize: "var(--text-sm)" }}>View all paths</Link>
         </div>
         
-        <div className="card" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div className="card-outer" style={{ display: "flex", flexWrap: "wrap", gap: "24px", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", gap: "24px", alignItems: "center" }}>
-            <div style={{ width: "80px", height: "80px", background: "var(--bg-subtle)", borderRadius: "16px", display: "flex", justifyContent: "center", alignItems: "center", fontSize: "32px" }}>
-              👋
+            <div style={{ width: "64px", height: "64px", background: "var(--color-overlay)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-lg)", display: "flex", justifyContent: "center", alignItems: "center", color: "var(--color-brand)" }}>
+              <HandMetal size={28} />
             </div>
             <div>
-              <div className="badge">FOUNDATIONS</div>
-              <h3>Common Phrases & Greetings</h3>
-              <p style={{ fontSize: "14px", color: "var(--text)" }}>Module 4  •  15 mins  •  Intermediate</p>
+              <div className="badge" style={{ marginBottom: "8px" }}>FOUNDATIONS</div>
+              <h3 style={{ fontSize: "var(--text-md)" }}>Common Phrases & Greetings</h3>
+              <p style={{ fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>Module 4  •  15 mins</p>
             </div>
           </div>
-          <button style={{ width: "auto", padding: "12px 32px" }} onClick={() => navigate("/practice")}>Resume Lesson</button>
+          <button style={{ width: "auto" }} onClick={() => navigate("/practice")}>Resume Lesson</button>
         </div>
       </section>
 
-      <section>
-        <h2 style={{ fontSize: "22px", marginBottom: "20px" }}>Learning Paths</h2>
+      <section className="animate-fade-in" style={{ animationDelay: "0.3s" }}>
+        <h2 style={{ fontSize: "var(--text-lg)", marginBottom: "20px" }}>Active Courses</h2>
         <div className="grid">
           {learningPaths.map((path, i) => (
-            <div key={i} className="card" style={{ position: "relative" }}>
-              <div className="badge" style={{ background: i === 0 ? "var(--accent-bg)" : "var(--bg-subtle)", color: i === 0 ? "var(--accent)" : "var(--text)" }}>
+            <div key={i} className="card-outer" style={{ position: "relative" }}>
+              <div className="badge" style={{ marginBottom: "16px", background: i === 0 ? "var(--color-brand-light)" : "var(--color-overlay)", color: i === 0 ? "var(--color-brand-dark)" : "var(--color-text-secondary)", borderColor: i === 0 ? "var(--color-brand)" : "var(--color-border-strong)" }}>
                 {path.level}
               </div>
-              <h3 style={{ marginBottom: "8px" }}>{path.title}</h3>
-              <p style={{ fontSize: "14px", color: "var(--text)", marginBottom: "20px" }}>{path.modules}</p>
+              <h3 style={{ marginBottom: "8px", fontSize: "var(--text-md)" }}>{path.title}</h3>
+              <p style={{ fontSize: "var(--text-sm)", color: "var(--color-text-secondary)", marginBottom: "20px" }}>{path.modules}</p>
               
-              <div style={{ height: "4px", background: "var(--bg-subtle)", borderRadius: "2px", marginBottom: "8px" }}>
-                <div style={{ width: `${path.progress}%`, height: "100%", background: path.color, borderRadius: "2px" }}></div>
+              <div style={{ height: "4px", background: "var(--color-overlay)", borderRadius: "var(--radius-full)", marginBottom: "8px", overflow: "hidden" }}>
+                <div style={{ width: `${path.progress}%`, height: "100%", background: path.color, borderRadius: "var(--radius-full)" }}></div>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px" }}>
-                <span style={{ fontWeight: "700" }}>{path.progress}%</span>
-                <Link to={`/paths/${i}`}>Open</Link>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-xs)" }}>
+                <span style={{ fontWeight: "700" }}>{path.progress}% Complete</span>
+                <Link to={"#"} style={{ fontWeight: "600" }}>Start →</Link>
               </div>
             </div>
           ))}

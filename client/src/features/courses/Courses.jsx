@@ -1,19 +1,42 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import MainLayout from "../../layouts/MainLayout";
-import { API } from "../../api"; // Using configured API handler
+import { API } from "../../api";
+import { Bot, Flame, ShoppingCart, HeartPulse, Building2, BookOpen, Lock, CheckCircle2 } from "lucide-react";
+
+// Emoji to Lucide Icon Mapper (Policy 3)
+const getIcon = (iconStr) => {
+  switch(iconStr) {
+    case '🤖': return <Bot size={32} />;
+    case '🔥': return <Flame size={32} />;
+    case '🛒': return <ShoppingCart size={32} />;
+    case '⚕️': return <HeartPulse size={32} />;
+    case '🏥': return <Building2 size={32} />;
+    default: return <BookOpen size={32} />;
+  }
+};
+
+const getIconSmall = (iconStr) => {
+  switch(iconStr) {
+    case '🤖': return <Bot size={24} />;
+    case '🔥': return <Flame size={24} />;
+    case '🛒': return <ShoppingCart size={24} />;
+    case '⚕️': return <HeartPulse size={24} />;
+    case '🏥': return <Building2 size={24} />;
+    default: return <BookOpen size={24} />;
+  }
+};
+
 
 function Courses() {
   const navigate = useNavigate();
   const [activeCourse, setActiveCourse] = useState(null);
   
-  // Real database states
   const [courses, setCourses] = useState([]);
   const [enrollments, setEnrollments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [transactionProcessing, setTransactionProcessing] = useState(false);
 
-  // Fetch Courses and Enrollments on mount
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -21,10 +44,7 @@ function Courses() {
           API.get("/courses"),
           API.get("/courses/my-enrollments")
         ]);
-        
-        // Ensure courses from backend have correct styling fields or defaults
         setCourses(coursesRes.data || []);
-        // Map enrollments to an array of course_ids for easy checking
         setEnrollments(enrollmentsRes.data ? enrollmentsRes.data.map(e => e.course_id) : []);
       } catch (err) {
         console.error("Error fetching data:", err);
@@ -40,9 +60,8 @@ function Courses() {
   const handleAction = async () => {
     if (!activeCourse) return;
     
-    // If user already owns the course OR the course is free
     if (isEnrolled(activeCourse.id) || !activeCourse.premium) {
-      if (activeCourse.id === 1001 || activeCourse.id === 1) { // Basic alphabet mock router
+      if (activeCourse.id === 1001 || activeCourse.id === 1) { 
         navigate("/practice", { state: { curriculum: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'] } });
       } else {
         navigate("/practice");
@@ -50,16 +69,14 @@ function Courses() {
       return;
     }
 
-    // Attempt Transaction to unlock
     try {
       setTransactionProcessing(true);
       const res = await API.post("/courses/enroll", { 
         course_id: activeCourse.id, 
-        amount: 29.99 // Mock payment amount 
+        amount: 29.99
       });
       
       if (res.data.success) {
-        // Unlock successful, add to local enrollments state
         setEnrollments([...enrollments, activeCourse.id]);
         alert("Transaction complete! Course unlocked via ACID Transaction.");
       }
@@ -75,7 +92,7 @@ function Courses() {
     return (
       <MainLayout>
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "50vh" }}>
-          <h2>Loading Curriculum...</h2>
+          <div className="text-muted font-semibold animate-fade-in">Loading Curriculum...</div>
         </div>
       </MainLayout>
     );
@@ -83,100 +100,92 @@ function Courses() {
 
   return (
     <MainLayout>
-      <main className="container" style={{ paddingTop: "80px", paddingBottom: "100px" }}>
+      <main className="container animate-fade-in" style={{ paddingTop: "80px", paddingBottom: "100px" }}>
           {activeCourse ? (
-            <div className="course-viewer" style={{ animation: "fadeIn 0.3s ease-out" }}>
+            <div>
               <button 
                 onClick={() => setActiveCourse(null)} 
                 className="secondary" 
-                style={{ marginBottom: "32px", width: "auto", padding: "8px 16px", display: "inline-flex", gap: "8px", alignItems: "center" }}
+                style={{ marginBottom: "32px", borderRadius: "var(--radius-full)" }}
               >
-                ← Back to SignSync Library
+                Back to SignSync Library
               </button>
 
               <div style={{ display: "flex", justifyContent: "center" }}>
-                <div className="card" style={{ maxWidth: "600px", width: "100%", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "40px" }}>
-                  <div style={{ width: "80px", height: "80px", background: `rgba(${parseInt(activeCourse.color?.slice(1,3) || "3b", 16)}, ${parseInt(activeCourse.color?.slice(3,5) || "82", 16)}, ${parseInt(activeCourse.color?.slice(5,7) || "f6", 16)}, 0.1)`, borderRadius: "20px", display: "flex", justifyContent: "center", alignItems: "center", fontSize: "40px", marginBottom: "24px" }}>
-                    {activeCourse.icon || "📚"}
+                <div className="card-outer" style={{ maxWidth: "600px", width: "100%", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "40px" }}>
+                  <div style={{ width: "80px", height: "80px", background: `rgba(${parseInt(activeCourse.color?.slice(1,3) || "3b", 16)}, ${parseInt(activeCourse.color?.slice(3,5) || "82", 16)}, ${parseInt(activeCourse.color?.slice(5,7) || "f6", 16)}, 0.1)`, color: activeCourse.color || "var(--color-brand)", borderRadius: "var(--radius-xl)", display: "flex", justifyContent: "center", alignItems: "center", marginBottom: "24px" }}>
+                    {getIcon(activeCourse.icon)}
                   </div>
-                  <h2 style={{ fontSize: "28px", marginBottom: "16px" }}>{activeCourse.title}</h2>
-                  <p style={{ fontSize: "16px", color: "var(--text)", marginBottom: "40px", lineHeight: "1.6" }}>
+                  <h2 style={{ marginBottom: "16px" }}>{activeCourse.title}</h2>
+                  <p style={{ color: "var(--color-text-secondary)", marginBottom: "40px" }}>
                     {activeCourse.desc || activeCourse.gestures}
                   </p>
                   
                   <button 
                     disabled={transactionProcessing}
                     onClick={handleAction}
+                    className={activeCourse.premium && !isEnrolled(activeCourse.id) ? "secondary" : ""}
                     style={{ 
                       width: "100%", 
                       padding: "16px", 
-                      background: (activeCourse.premium && !isEnrolled(activeCourse.id)) ? "transparent" : "var(--accent)", 
-                      border: (activeCourse.premium && !isEnrolled(activeCourse.id)) ? "2px solid var(--border)" : "none",
-                      color: (activeCourse.premium && !isEnrolled(activeCourse.id)) ? "var(--text)" : "#000",
-                      fontSize: "16px",
-                      fontWeight: "bold",
+                      fontSize: "var(--text-lg)",
                       opacity: transactionProcessing ? 0.7 : 1,
                       cursor: transactionProcessing ? "not-allowed" : "pointer"
                     }}
                   >
                     {transactionProcessing ? "Processing Transaction..." 
                       : isEnrolled(activeCourse.id) ? "Continue Course" 
-                      : activeCourse.premium ? "Unlock with Pro (Real Transaction test)" : "Start Course"}
+                      : activeCourse.premium ? <><Lock size={18}/> Unlock with Pro</> : "Start Course"}
                   </button>
-                  <style>{`
-                    @keyframes fadeIn {
-                      from { opacity: 0; transform: translateY(10px); }
-                      to { opacity: 1; transform: translateY(0); }
-                    }
-                  `}</style>
                 </div>
               </div>
             </div>
           ) : (
             <>
               {/* SignSync Branded Banner */}
-              <div style={{ background: "linear-gradient(135deg, rgba(20,184,166,0.1) 0%, rgba(13,148,136,0.2) 100%)", borderRadius: "24px", padding: "40px", marginBottom: "40px", border: "1px solid rgba(20,184,166,0.3)" }}>
-                <div className="badge" style={{ marginBottom: "16px", background: "var(--accent)", color: "#000" }}>SignSync Curriculum</div>
-                <h1 style={{ fontSize: "36px", marginBottom: "16px" }}>Master ASL with AI Precision.</h1>
-                <p style={{ color: "var(--text)", fontSize: "16px", maxWidth: "600px", lineHeight: "1.6" }}>
+              <div style={{ background: "linear-gradient(135deg, var(--color-brand-light) 0%, var(--color-canvas) 100%)", borderRadius: "var(--radius-xl)", padding: "40px", marginBottom: "40px", border: "1px solid var(--color-brand-light)" }}>
+                <div className="badge" style={{ marginBottom: "16px" }}>SignSync Curriculum</div>
+                <h1 style={{ fontSize: "var(--text-2xl)", marginBottom: "16px", color: "var(--color-brand-dark)" }}>Master ASL with AI Precision</h1>
+                <p style={{ color: "var(--color-text-secondary)", maxWidth: "600px" }}>
                   Every course below is fetched from the PostgreSQL database using explicit JOINs. Premium courses utilize complex multi-table SQL Transactions to ensure Database Consistency.
                 </p>
               </div>
 
               <div className="grid">
                 {courses.map((course, i) => (
-                  <div key={i} className="card" style={{ position: "relative", display: "flex", flexDirection: "column" }}>
+                  <div key={i} className="card-outer" style={{ position: "relative", display: "flex", flexDirection: "column" }}>
                     {course.premium && !isEnrolled(course.id) && (
-                      <div style={{ position: "absolute", top: "16px", right: "16px", fontSize: "12px", color: "#ec4899", fontWeight: "700", background: "rgba(236,72,153,0.1)", padding: "4px 8px", borderRadius: "8px" }}>
-                        SIGNSYNC PRO
+                      <div className="badge" style={{ position: "absolute", top: "16px", right: "16px", color: "var(--color-text-muted)", background: "var(--color-overlay)", border: "1px solid var(--color-border)" }}>
+                        <Lock size={12}/> PRO
                       </div>
                     )}
                     {isEnrolled(course.id) && (
-                      <div style={{ position: "absolute", top: "16px", right: "16px", fontSize: "12px", color: "#14b8a6", fontWeight: "700", background: "rgba(20,184,166,0.1)", padding: "4px 8px", borderRadius: "8px" }}>
-                        ENROLLED
+                      <div className="badge" style={{ position: "absolute", top: "16px", right: "16px" }}>
+                        <CheckCircle2 size={12}/> ENROLLED
                       </div>
                     )}
                     
-                    <div style={{ width: "64px", height: "64px", background: `rgba(${parseInt(course.color?.slice(1,3) || "3b", 16)}, ${parseInt(course.color?.slice(3,5) || "82", 16)}, ${parseInt(course.color?.slice(5,7) || "f6", 16)}, 0.1)`, borderRadius: "16px", display: "flex", justifyContent: "center", alignItems: "center", fontSize: "32px", marginBottom: "20px" }}>
-                      {course.icon || "📚"}
+                    <div style={{ width: "64px", height: "64px", background: `rgba(${parseInt(course.color?.slice(1,3) || "3b", 16)}, ${parseInt(course.color?.slice(3,5) || "82", 16)}, ${parseInt(course.color?.slice(5,7) || "f6", 16)}, 0.1)`, color: course.color || "var(--color-brand)", borderRadius: "var(--radius-lg)", display: "flex", justifyContent: "center", alignItems: "center", marginBottom: "20px" }}>
+                      {getIconSmall(course.icon)}
                     </div>
                     
-                    <h3 style={{ fontSize: "18px", marginBottom: "8px" }}>{course.title}</h3>
-                    <p style={{ fontSize: "13px", color: "var(--text)", marginBottom: "16px", flex: 1, lineHeight: "1.4" }}>
+                    <h3 style={{ fontSize: "var(--text-md)", marginBottom: "8px" }}>{course.title}</h3>
+                    <p style={{ fontSize: "var(--text-sm)", color: "var(--color-text-secondary)", marginBottom: "16px", flex: 1 }}>
                       {course.desc || course.gestures}
                     </p>
                     
-                    <div style={{ display: "flex", gap: "12px", fontSize: "13px", color: "var(--text)", marginBottom: "24px", opacity: 0.8 }}>
-                      <span style={{ fontWeight: "600", color: course.color || "#3b82f6" }}>{course.difficulty || "General"}</span>
+                    <div className="flex items-center gap-4 text-xs text-muted" style={{ marginBottom: "24px" }}>
+                      <span className="font-semibold" style={{ color: course.color || "var(--color-brand)" }}>{course.difficulty || "General"}</span>
                       <span>•</span>
                       <span>{course.modules || 1} Modules</span>
                     </div>
                     
                     <button 
                       onClick={() => setActiveCourse(course)}
-                      style={{ width: "100%", padding: "12px", background: "var(--accent-bg)", border: "1px solid rgba(20,184,166,0.3)", color: "var(--accent)", fontWeight: "600", transition: "all 0.2s" }}
+                      className="secondary"
+                      style={{ width: "100%" }}
                     >
-                      {course.premium && !isEnrolled(course.id) ? "View PRO Details" : "Start SignSync Session"}
+                      {course.premium && !isEnrolled(course.id) ? "View Details" : "Start Session"}
                     </button>
                   </div>
                 ))}
