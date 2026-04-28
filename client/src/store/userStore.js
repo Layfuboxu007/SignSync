@@ -22,6 +22,19 @@ export const useUserStore = create((set, get) => ({
     }
   },
 
+  upgradeMembership: async () => {
+    try {
+      const { data } = await API.post('/user/membership', { status: 'member' });
+      if (data.success) {
+        set({ profile: data.user });
+        return true;
+      }
+    } catch (error) {
+      console.error("Failed to upgrade membership", error);
+      return false;
+    }
+  },
+
   logout: async () => {
     await supabase.auth.signOut();
     set({ session: null, profile: null });

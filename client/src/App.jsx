@@ -1,19 +1,29 @@
 import { useEffect } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useUserStore } from "./store/userStore";
+
+import PublicLayout from "./layouts/PublicLayout";
+import AppLayout from "./layouts/AppLayout";
+import FocusLayout from "./layouts/FocusLayout";
+import AdminLayout from "./layouts/AdminLayout";
+import ProtectedRoute from "./components/common/ProtectedRoute";
 
 import Landing from "./pages/Landing";
 import Login from "./features/auth/Login";
 import Register from "./features/auth/Register";
 import ForgotPassword from "./features/auth/ForgotPassword";
 import UpdatePassword from "./features/auth/UpdatePassword";
-import Dashboard from "./features/dashboard/Dashboard";
-import Settings from "./pages/Settings";
-import Courses from "./features/courses/Courses";
 import About from "./pages/About";
+import CourseCatalogPage from "./pages/courses/CourseCatalogPage";
+
+import Dashboard from "./features/dashboard/Dashboard";
+import Profile from "./pages/Profile";
 import StartPage from "./pages/StartPage";
 import InstructorDashboard from "./features/dashboard/InstructorDashboard";
-import ASLTracker from "./features/tracker/ASLTracker";
+import PracticeRoomPage from "./pages/practice/PracticeRoomPage";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import UserManagement from "./pages/admin/UserManagement";
+import ActivityLogs from "./pages/admin/ActivityLogs";
 
 function App() {
   const { initializeSession } = useUserStore();
@@ -25,18 +35,41 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/update-password" element={<UpdatePassword />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/practice" element={<ASLTracker />} />
-        <Route path="/instructor/dashboard" element={<InstructorDashboard />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/courses" element={<Courses />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/start" element={<StartPage />} />
+        {/* Public: top navbar + footer */}
+        <Route element={<PublicLayout />}>
+          <Route path="/" element={<Landing />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/courses" element={<CourseCatalogPage />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/update-password" element={<UpdatePassword />} />
+        </Route>
+
+        {/* App: sidebar + header (protected) */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<AppLayout />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/start" element={<StartPage />} />
+          </Route>
+
+          <Route element={<AppLayout isInstructor />}>
+            <Route path="/instructor/dashboard" element={<InstructorDashboard />} />
+          </Route>
+
+          {/* Admin routes */}
+          <Route element={<AdminLayout />}>
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/users" element={<UserManagement />} />
+            <Route path="/admin/logs" element={<ActivityLogs />} />
+          </Route>
+
+          {/* Focus: minimal header for practice */}
+          <Route element={<FocusLayout />}>
+            <Route path="/practice" element={<PracticeRoomPage />} />
+          </Route>
+        </Route>
       </Routes>
     </BrowserRouter>
   );

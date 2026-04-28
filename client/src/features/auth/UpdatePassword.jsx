@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../api";
 import { useNavigate } from "react-router-dom";
+import { Alert } from "../../components/common/Alert";
+import { FormField } from "../../components/common/FormField";
 
 function UpdatePassword() {
   const [password, setPassword] = useState("");
@@ -55,11 +57,11 @@ function UpdatePassword() {
 
   if (sessionError) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
-        <div className="card-outer animate-fade-in" style={{ maxWidth: "440px", width: "100%", padding: "48px" }}>
+      <div style={{ minHeight: "80vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "var(--space-5)" }}>
+        <div className="card-outer animate-fade-in" style={{ maxWidth: "440px", width: "100%", padding: "var(--space-12)" }}>
           <div style={{ textAlign: "center" }}>
-            <h2 style={{ fontSize: "var(--text-xl)", marginBottom: "8px" }}>Invalid Link</h2>
-            <p className="text-sm" style={{ color: "#ef4444", marginBottom: "32px" }}>This password reset link is invalid or has expired.</p>
+            <h2 style={{ fontSize: "var(--text-xl)", marginBottom: "var(--space-2)" }}>Invalid Link</h2>
+            <p className="text-sm" style={{ color: "var(--color-danger)", marginBottom: "var(--space-8)" }}>This password reset link is invalid or has expired.</p>
             <button onClick={() => navigate("/forgot-password")} style={{ width: "100%" }}>
               Request New Link
             </button>
@@ -70,52 +72,38 @@ function UpdatePassword() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
-      <div className="card-outer animate-fade-in" style={{ maxWidth: "440px", width: "100%", padding: "48px" }}>
-        <div style={{ textAlign: "center", marginBottom: "32px" }}>
-          <h2 style={{ fontSize: "var(--text-xl)", marginBottom: "8px" }}>Update Password</h2>
+    <div style={{ minHeight: "80vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "var(--space-5)" }}>
+      <div className="card-outer animate-fade-in" style={{ maxWidth: "440px", width: "100%", padding: "var(--space-12)" }}>
+        <div style={{ textAlign: "center", marginBottom: "var(--space-8)" }}>
+          <h2 style={{ fontSize: "var(--text-xl)", marginBottom: "var(--space-2)" }}>Update Password</h2>
           <p className="text-muted text-sm">Please enter your new password below.</p>
         </div>
 
         <form onSubmit={handleUpdate} style={{ textAlign: "left" }}>
-          {errorMsg && (
-            <div className="card-inner text-sm" style={{ background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", borderColor: "rgba(239, 68, 68, 0.3)", marginBottom: "24px" }}>
-              Error: {errorMsg}
-            </div>
-          )}
-          {successMsg && (
-            <div className="card-inner text-sm" style={{ background: "rgba(16, 185, 129, 0.1)", color: "#10b981", borderColor: "rgba(16, 185, 129, 0.3)", marginBottom: "24px", textAlign: "center" }}>
-              {successMsg}
-            </div>
-          )}
+          {errorMsg && <Alert type="error">Error: {errorMsg}</Alert>}
+          {successMsg && <Alert type="success">{successMsg}</Alert>}
 
-          <div style={{ marginBottom: "20px" }}>
-            <label style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: "700", marginBottom: "8px", color: "var(--color-text-muted)", letterSpacing: "0.05em" }}>
-              NEW PASSWORD
-            </label>
-            <input
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
+          <FormField
+            label="NEW PASSWORD"
+            id="update-password"
+            type="password"
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
 
-          <div style={{ marginBottom: "32px" }}>
-            <label style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: "700", marginBottom: "8px", color: "var(--color-text-muted)", letterSpacing: "0.05em" }}>
-              CONFIRM PASSWORD
-            </label>
-            <input
-              type="password"
-              placeholder="••••••••"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-            />
-          </div>
+          <FormField
+            label="CONFIRM PASSWORD"
+            id="update-confirm-password"
+            type="password"
+            placeholder="••••••••"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+          />
 
-          <button type="submit" disabled={loading} style={{ width: "100%", padding: "14px", fontSize: "var(--text-sm)" }}>
+          <button type="submit" disabled={loading} style={{ width: "100%", padding: "14px", fontSize: "var(--text-sm)", marginTop: "var(--space-4)" }}>
             {loading ? "Updating..." : "Update Password"}
           </button>
         </form>

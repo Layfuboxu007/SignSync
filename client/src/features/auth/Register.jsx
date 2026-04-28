@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase, API } from "../../api";
 import { useNavigate, Link } from "react-router-dom";
-import { GraduationCap, GraduationCap as Teacher } from "lucide-react";
+import { GraduationCap, Briefcase } from "lucide-react";
+import { Alert } from "../../components/common/Alert";
+import { FormField } from "../../components/common/FormField";
+import { useUserStore } from "../../store/userStore";
 
 function Register() {
   const [firstName, setFirstName] = useState("");
@@ -15,6 +18,15 @@ function Register() {
   const [successMsg, setSuccessMsg] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { profile, session } = useUserStore();
+
+  useEffect(() => {
+    if (session) {
+      if (profile?.role === "admin") navigate("/admin");
+      else if (profile?.role === "instructor") navigate("/instructor/dashboard");
+      else navigate("/dashboard");
+    }
+  }, [session, profile, navigate]);
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -66,7 +78,13 @@ function Register() {
       }
 
       setSuccessMsg("Account created successfully! Redirecting...");
-      setTimeout(() => navigate("/login"), 1500);
+      setTimeout(() => {
+        if (role === "instructor") {
+          navigate("/instructor/dashboard");
+        } else {
+          navigate("/dashboard");
+        }
+      }, 1500);
     } catch (err) {
       setErrorMsg(err.message || "Registration failed. Please try again.");
     } finally {
@@ -75,81 +93,71 @@ function Register() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 20px" }}>
-      <div className="card-outer animate-fade-in" style={{ maxWidth: "540px", width: "100%", padding: "48px" }}>
-        <div style={{ textAlign: "center", marginBottom: "32px" }}>
-          <h2 style={{ fontSize: "var(--text-xl)", marginBottom: "8px" }}>Create Free Account</h2>
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "var(--space-10) var(--space-5)" }}>
+      <div className="card-outer animate-fade-in" style={{ maxWidth: "540px", width: "100%", padding: "var(--space-12)" }}>
+        <div style={{ textAlign: "center", marginBottom: "var(--space-8)" }}>
+          <h2 style={{ fontSize: "var(--text-xl)", marginBottom: "var(--space-2)" }}>Create Free Account</h2>
           <p className="text-muted text-sm">Start your journey to visual fluency today.</p>
         </div>
 
         <form onSubmit={handleRegister} style={{ textAlign: "left" }}>
-          
-          {errorMsg && (
-            <div className="card-inner text-sm" style={{ background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", borderColor: "rgba(239, 68, 68, 0.3)", marginBottom: "24px" }}>
-              Error: {errorMsg}
-            </div>
-          )}
-          {successMsg && (
-            <div className="card-inner text-sm" style={{ background: "rgba(16, 185, 129, 0.1)", color: "#10b981", borderColor: "rgba(16, 185, 129, 0.3)", marginBottom: "24px", textAlign: "center" }}>
-              {successMsg}
-            </div>
-          )}
+          {errorMsg && <Alert type="error">Error: {errorMsg}</Alert>}
+          {successMsg && <Alert type="success">{successMsg}</Alert>}
 
-          <div style={{ display: "flex", gap: "16px", marginBottom: "32px" }}>
-            <div 
+          <div style={{ display: "flex", gap: "var(--space-4)", marginBottom: "var(--space-8)" }}>
+            <div
+              role="button"
+              tabIndex={0}
               onClick={() => setRole("learner")}
-              style={{ flex: 1, padding: "20px", borderRadius: "var(--radius-md)", border: role === "learner" ? "2px solid var(--color-brand)" : "2px solid var(--color-border)", background: role === "learner" ? "var(--color-brand-light)" : "var(--color-surface)", cursor: "pointer", textAlign: "center", transition: "all 0.2s" }}
+              onKeyDown={(e) => e.key === 'Enter' && setRole("learner")}
+              className="card-inner card-interactive"
+              style={{
+                flex: 1, padding: "var(--space-5)", textAlign: "center",
+                background: role === "learner" ? "var(--color-brand-light)" : "var(--color-overlay)",
+                borderColor: role === "learner" ? "var(--color-brand)" : "var(--color-border)",
+                borderWidth: "2px"
+              }}
             >
-              <div className="flex justify-center" style={{ marginBottom: "12px", color: role === "learner" ? "var(--color-brand)" : "var(--color-text-muted)" }}><GraduationCap size={28} strokeWidth={1.5}/></div>
+              <div className="flex justify-center" style={{ marginBottom: "var(--space-3)", color: role === "learner" ? "var(--color-brand)" : "var(--color-text-muted)" }}><GraduationCap size={28} strokeWidth={1.5}/></div>
               <div style={{ fontSize: "var(--text-sm)", fontWeight: "600", color: role === "learner" ? "var(--color-brand-dark)" : "var(--color-text-secondary)" }}>Learner Account</div>
             </div>
-            <div 
+            <div
+              role="button"
+              tabIndex={0}
               onClick={() => setRole("instructor")}
-              style={{ flex: 1, padding: "20px", borderRadius: "var(--radius-md)", border: role === "instructor" ? "2px solid var(--color-brand)" : "2px solid var(--color-border)", background: role === "instructor" ? "var(--color-brand-light)" : "var(--color-surface)", cursor: "pointer", textAlign: "center", transition: "all 0.2s" }}
+              onKeyDown={(e) => e.key === 'Enter' && setRole("instructor")}
+              className="card-inner card-interactive"
+              style={{
+                flex: 1, padding: "var(--space-5)", textAlign: "center",
+                background: role === "instructor" ? "var(--color-brand-light)" : "var(--color-overlay)",
+                borderColor: role === "instructor" ? "var(--color-brand)" : "var(--color-border)",
+                borderWidth: "2px"
+              }}
             >
-              <div className="flex justify-center" style={{ marginBottom: "12px", color: role === "instructor" ? "var(--color-brand)" : "var(--color-text-muted)" }}><Teacher size={28} strokeWidth={1.5}/></div>
+              <div className="flex justify-center" style={{ marginBottom: "var(--space-3)", color: role === "instructor" ? "var(--color-brand)" : "var(--color-text-muted)" }}><Briefcase size={28} strokeWidth={1.5}/></div>
               <div style={{ fontSize: "var(--text-sm)", fontWeight: "600", color: role === "instructor" ? "var(--color-brand-dark)" : "var(--color-text-secondary)" }}>Instructor Account</div>
             </div>
           </div>
           
-          <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "20px" }}>
-            <div>
-              <label style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: "700", marginBottom: "8px", color: "var(--color-text-muted)", letterSpacing: "0.05em" }}>FIRST NAME</label>
-              <input type="text" placeholder="First Name" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
-            </div>
-            <div>
-              <label style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: "700", marginBottom: "8px", color: "var(--color-text-muted)", letterSpacing: "0.05em" }}>LAST NAME</label>
-              <input type="text" placeholder="Last Name" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
-            </div>
+          <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "var(--space-4)" }}>
+            <FormField label="FIRST NAME" id="reg-first-name" type="text" placeholder="First Name" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
+            <FormField label="LAST NAME" id="reg-last-name" type="text" placeholder="Last Name" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
           </div>
           
-          <div style={{ marginBottom: "20px" }}>
-            <label style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: "700", marginBottom: "8px", color: "var(--color-text-muted)", letterSpacing: "0.05em" }}>USERNAME</label>
-            <input type="text" placeholder="Pick a username" value={username} onChange={(e) => setUsername(e.target.value)} required />
+          <FormField label="USERNAME" id="reg-username" type="text" placeholder="Pick a username" value={username} onChange={(e) => setUsername(e.target.value)} required />
+          <FormField label="EMAIL ADDRESS" id="reg-email" type="email" placeholder="name@domain.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+
+          <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "var(--space-4)" }}>
+            <FormField label="PASSWORD" id="reg-password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <FormField label="CONFIRM PASSWORD" id="reg-confirm" type="password" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
           </div>
 
-          <div style={{ marginBottom: "20px" }}>
-            <label style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: "700", marginBottom: "8px", color: "var(--color-text-muted)", letterSpacing: "0.05em" }}>EMAIL ADDRESS</label>
-            <input type="email" placeholder="name@domain.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
-          </div>
-
-          <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "32px" }}>
-            <div>
-              <label style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: "700", marginBottom: "8px", color: "var(--color-text-muted)", letterSpacing: "0.05em" }}>PASSWORD</label>
-              <input type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
-            </div>
-            <div>
-              <label style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: "700", marginBottom: "8px", color: "var(--color-text-muted)", letterSpacing: "0.05em" }}>CONFIRM PASSWORD</label>
-              <input type="password" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
-            </div>
-          </div>
-
-          <button type="submit" disabled={loading} style={{ width: "100%", padding: "16px", fontSize: "var(--text-sm)" }}>
+          <button type="submit" disabled={loading} style={{ width: "100%", padding: "var(--space-4)", fontSize: "var(--text-sm)", marginTop: "var(--space-4)" }}>
             {loading ? "Creating Account..." : "Create Account"}
           </button>
         </form>
 
-        <div style={{ marginTop: "32px", textAlign: "center" }}>
+        <div style={{ marginTop: "var(--space-8)", textAlign: "center" }}>
           <p className="text-muted text-sm">
             Already have an account? <Link to="/login">Sign in here</Link>
           </p>

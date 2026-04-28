@@ -12,13 +12,14 @@ const authenticateToken = async (req, res, next) => {
     return res.status(403).json({ error: "Invalid token" });
   }
 
-  // Fetch the numeric ID from the public users table so relations like 'instructor_id' do not break
-  const { data: dbUser } = await supabase.from('users').select('id, role').eq('email', user.email).single();
+  // Fetch the numeric ID and membership status from the public users table
+  const { data: dbUser } = await supabase.from('users').select('id, role, membership_status').eq('email', user.email).single();
 
   req.user = {
     id: dbUser ? dbUser.id : user.id,
     email: user.email,
-    role: dbUser ? dbUser.role : (user.user_metadata?.role || "learner")
+    role: dbUser ? dbUser.role : (user.user_metadata?.role || "learner"),
+    membership_status: dbUser ? dbUser.membership_status : "free"
   };
   next();
 };

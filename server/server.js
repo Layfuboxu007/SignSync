@@ -4,6 +4,7 @@ const cors = require("cors");
 
 const userRoutes = require("./src/modules/users/userRoutes");
 const courseRoutes = require("./src/modules/courses/courseRoutes");
+const adminRoutes = require("./src/modules/admin/adminRoutes");
 
 // APP SETUP
 const app = express();
@@ -22,6 +23,7 @@ app.get("/", (req, res) => {
 // Modular Routes
 app.use("/", userRoutes); // To keep backward compatibility with /, /test-db, /lookup-email, /sync-user, /user/me, /user
 app.use("/courses", courseRoutes);
+app.use("/api/admin", adminRoutes);
 
 // =======================
 // START SERVER

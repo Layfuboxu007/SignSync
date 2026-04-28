@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useUserStore } from "../../store/userStore";
-import DashboardLayout from "../../layouts/DashboardLayout";
 import { PlusCircle, XCircle, Video, BookOpen, Users, Activity, Layers } from "lucide-react";
 
 function InstructorDashboard() {
@@ -14,7 +13,7 @@ function InstructorDashboard() {
   ];
 
   return (
-    <DashboardLayout isInstructor>
+    <>
       <header className="flex justify-between items-center animate-fade-in" style={{ flexWrap: "wrap", gap: "16px", marginBottom: "40px" }}>
         <div>
           <h1 style={{ fontSize: "var(--text-xl)", marginBottom: "4px" }}>Instructor {currentUser}</h1>
@@ -117,7 +116,7 @@ function InstructorDashboard() {
           </section>
         </>
       )}
-    </DashboardLayout>
+    </>
   );
 }
 
