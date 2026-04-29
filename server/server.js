@@ -40,10 +40,15 @@ app.get("/", (req, res) => {
   res.send("Server is working!");
 });
 
+const errorHandler = require("./src/middleware/errorHandler");
+
 // Modular Routes
-app.use("/", userRoutes); // To keep backward compatibility with /, /test-db, /lookup-email, /sync-user, /user/me, /user
-app.use("/courses", courseRoutes);
-app.use("/api/admin", adminRoutes);
+app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/courses", courseRoutes);
+app.use("/api/v1/admin", adminRoutes);
+
+// Global Error Handler
+app.use(errorHandler);
 
 // =======================
 // START SERVER

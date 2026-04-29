@@ -92,7 +92,7 @@ function Profile() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) await supabase.from('users').delete().eq('id', user.id);
-        await API.delete("/user");
+        await API.delete("/users");
         await logout();
         alert("Account deleted successfully.");
         navigate("/");

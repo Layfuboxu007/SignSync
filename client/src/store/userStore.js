@@ -12,7 +12,7 @@ export const useUserStore = create((set, get) => ({
       set({ session });
       
       if (session) {
-        const { data: profile } = await API.get('/user/me');
+        const { data: profile } = await API.get('/users/me');
         set({ profile });
       }
     } catch (error) {
@@ -24,7 +24,7 @@ export const useUserStore = create((set, get) => ({
 
   upgradeMembership: async () => {
     try {
-      const { data } = await API.post('/user/membership', { status: 'member' });
+      const { data } = await API.post('/users/membership', { status: 'member' });
       if (data.success) {
         set({ profile: data.user });
         return true;

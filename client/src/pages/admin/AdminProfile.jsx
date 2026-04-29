@@ -34,7 +34,7 @@ export default function AdminProfile() {
 
     setLoading(true);
     try {
-      await API.put("/api/auth/update-password", {
+      await API.put("/users/update-password", {
         password: passwordData.newPassword
       });
       setSuccessMsg("Password updated successfully.");

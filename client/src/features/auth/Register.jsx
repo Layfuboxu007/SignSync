@@ -65,7 +65,7 @@ function Register() {
       
       if (data?.user) {
         try {
-          await API.post("/sync-user", {
+          await API.post("/users/sync", {
              firstName,
              lastName,
              username,

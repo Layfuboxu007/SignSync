@@ -9,7 +9,7 @@ export default function ActivityLogs() {
   useEffect(() => {
     const fetchLogs = async () => {
       try {
-        const res = await API.get("/api/admin/logs?limit=100");
+        const res = await API.get("/admin/logs?limit=100");
         setLogs(res.data.logs);
       } catch (err) {
         console.error("Failed to fetch logs", err);

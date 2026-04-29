@@ -16,8 +16,8 @@ export default function AdminDashboard() {
     const fetchAdminData = async () => {
       try {
         const [overviewRes, engagementRes] = await Promise.all([
-          API.get("/api/admin/metrics/overview"),
-          API.get("/api/admin/metrics/engagement")
+          API.get("/admin/metrics/overview"),
+          API.get("/admin/metrics/engagement")
         ]);
 
         const rawMetrics = overviewRes.data.recentMetrics || [];

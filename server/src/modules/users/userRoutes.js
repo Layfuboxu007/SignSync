@@ -7,13 +7,13 @@ const { requireRole } = require("../../middleware/roleGuard");
 // Public (no auth)
 router.get("/test-db", userController.testDb);
 router.post("/lookup-email", userController.lookupEmail);
-router.post("/sync-user", userController.syncUser);
+router.post("/sync", userController.syncUser);
 
 // Shared (all authenticated users)
-router.get("/user/me", authenticateToken, userController.getMe);
+router.get("/me", authenticateToken, userController.getMe);
 
 // Student-only — admins should NOT delete themselves or toggle membership
-router.delete("/user", authenticateToken, requireRole("learner", "student"), userController.deleteMe);
-router.post("/user/membership", authenticateToken, requireRole("learner", "student"), userController.toggleMembership);
+router.delete("/", authenticateToken, requireRole("learner", "student"), userController.deleteMe);
+router.post("/membership", authenticateToken, requireRole("learner", "student"), userController.toggleMembership);
 
 module.exports = router;

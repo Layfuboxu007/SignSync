@@ -96,7 +96,7 @@ export default function PracticeRoomPage() {
            trackEvent('module_complete', { module: currentModule });
            const courseId = location.state?.courseId;
            if (courseId) {
-             API.post(`/api/courses/${courseId}/progress`, { module_name: currentModule })
+             API.post(`/courses/${courseId}/progress`, { module_name: currentModule })
                .catch(err => console.error("Failed to save course progress", err));
            }
         }
@@ -115,7 +115,7 @@ export default function PracticeRoomPage() {
         // Save progress to DB permanently
         const courseId = location.state?.courseId;
         if (courseId) {
-          API.post(`/api/courses/${courseId}/progress`, { module_name: currentModule })
+          API.post(`/courses/${courseId}/progress`, { module_name: currentModule })
             .catch(err => console.error("Failed to save course progress", err));
         }
       }
