@@ -1,177 +1,80 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { useGestureTracker } from "../../hooks/useGestureTracker";
-import { evaluateGestureMatch } from "../../utils/gestureMath";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { Link } from "react-router-dom";
+import { usePracticeSession } from "../../hooks/usePracticeSession";
 import WebcamCanvas from "../../components/tracker/WebcamCanvas";
 import { DemoLoop } from "../../components/tutorials/DemoLoop";
 import { TutorialModal } from "../../components/tutorials/TutorialModal";
 import { InterventionPanel } from "../../components/tutorials/InterventionPanel";
-import { useAnalytics } from "../../hooks/useAnalytics";
-import { API } from "../../api";
+
+// ── Sub-components ──────────────────────────────────────────
+
+function CompletionCard() {
+  return (
+    <div className="card-outer" style={{ background: "var(--color-brand-light)", borderColor: "var(--color-brand-dark)", textAlign: "center" }}>
+      <div style={{ width: "64px", height: "64px", margin: "0 auto var(--space-4)", borderRadius: "50%", background: "var(--color-brand)", display: "flex", justifyContent: "center", alignItems: "center" }}>
+         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+      </div>
+      <h2 style={{ color: "var(--color-brand-dark)", fontSize: "var(--text-lg)", marginBottom: "var(--space-2)" }}>Lesson Completed</h2>
+      <p style={{ fontSize: "var(--text-sm)", color: "var(--color-text-secondary)", marginBottom: "var(--space-6)" }}>You successfully passed the AI accuracy check for all signs in this lesson.</p>
+      <Link to="/dashboard">
+        <button style={{ width: "100%" }}>Return to Dashboard</button>
+      </Link>
+    </div>
+  );
+}
+
+function TargetSignCard({ targetSign, gestureStatus }) {
+  return (
+    <div className="card-outer flex flex-col items-center justify-center text-center">
+      <p className="text-muted font-semibold text-xs mb-2">TARGET SIGN</p>
+      <div style={{ fontSize: "var(--text-3xl)", fontWeight: "800", color: "var(--color-text-primary)", margin: "var(--space-4) 0" }}>{targetSign}</div>
+      <h3 aria-live="polite" aria-atomic="true" style={{ fontSize: "var(--text-sm)", color: gestureStatus.includes("MATCHED") ? "var(--color-brand)" : "var(--color-text-secondary)" }}>{gestureStatus}</h3>
+    </div>
+  );
+}
+
+function AccuracyMeter({ score }) {
+  return (
+    <div className="card-outer">
+      <p className="text-muted font-semibold text-xs mb-4">ACCURACY</p>
+      <div style={{ height: "6px", background: "var(--color-overlay)", borderRadius: "var(--radius-full)", marginBottom: "var(--space-3)", overflow: "hidden" }}>
+         <div style={{ background: "var(--color-brand)", width: `${score}%`, height: "100%", transition: "width 0.2s ease-out" }}></div>
+      </div>
+      <div className="flex justify-between text-sm">
+        <span className="font-semibold">{score}% Matched</span>
+        <span className="text-muted">Hold Form</span>
+      </div>
+    </div>
+  );
+}
+
+function ProgressBar({ currentIndex, total, items }) {
+  return (
+    <div className="card-inner" style={{ marginTop: "auto" }}>
+       <div className="flex items-center justify-between" style={{ marginBottom: "var(--space-4)" }}>
+          <p style={{ fontSize: "var(--text-xs)", color: "var(--color-text-primary)", fontWeight: "700" }}>PROGRESS</p>
+          <p style={{ fontSize: "var(--text-xs)", color: "var(--color-text-muted)" }}>{currentIndex + 1} of {total}</p>
+       </div>
+       <div style={{ display: "flex", gap: "6px" }}>
+         {items.map((_, idx) => (
+           <div key={idx} style={{ flex: 1, height: "4px", background: idx < currentIndex ? "var(--color-brand)" : "var(--color-border)", borderRadius: "var(--radius-full)" }}></div>
+         ))}
+       </div>
+    </div>
+  );
+}
+
+// ── Main Page ───────────────────────────────────────────────
 
 export default function PracticeRoomPage() {
-  const location = useLocation();
-  const { trackEvent } = useAnalytics();
-  
-  const flatCurriculum = useMemo(() => {
-    const raw = location.state?.curriculum;
-    if (!raw || !raw.length) return [{ module: 'Demo Lesson', sign: 'Thumbs Up Demo' }];
-    
-    if (typeof raw[0] === 'string') {
-       return raw.map(sign => ({ module: 'General Practice', sign }));
-    }
+  const {
+    flatCurriculum, currentIndex, targetItem, targetSign, targetModule,
+    gestureStatus, score, completed, modelLoading, model, poseModel,
+    showIntro, showIntervention, handleIntroComplete, handleResumeFromIntervention,
+    detect
+  } = usePracticeSession();
 
-    const flattened = [];
-    raw.forEach(mod => {
-      (mod.signs || []).forEach(sign => {
-         flattened.push({ 
-           module: mod.module, 
-           introVideoUrl: mod.introVideoUrl,
-           name: sign.name || sign,
-           demoUrl: sign.demoUrl,
-           correctionUrl: sign.correctionUrl
-         });
-      });
-    });
-    return flattened.length > 0 ? flattened : [{ module: 'Demo Lesson', sign: 'Thumbs Up Demo' }];
-  }, [location.state]);
-  
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const targetItem = flatCurriculum[currentIndex] || flatCurriculum[0];
-  const targetSign = targetItem.name || targetItem.sign;
-  const targetModule = targetItem.module;
-  
-  const { model, poseModel, loading } = useGestureTracker();
-  
-  const [gestureStatus, setGestureStatus] = useState(`Waiting for action...`);
-  const [score, setScore] = useState(0);
-  const [completed, setCompleted] = useState(false);
-  const [isAdvancing, setIsAdvancing] = useState(false);
-
-  // Tutorial System State
-  const [showIntro, setShowIntro] = useState(false);
-  const [showIntervention, setShowIntervention] = useState(false);
-  const failureCountRef = useRef(0);
-
-  // Track Session Start
-  useEffect(() => {
-    if (targetModule) {
-      trackEvent('session_start', { module: targetModule });
-    }
-  }, [targetModule, trackEvent]);
-
-  // Initialize Module Intro check
-  useEffect(() => {
-    const cacheKey = `signsync_intro_seen_${targetModule.replace(/\s+/g, '_')}`;
-    const hasSeen = localStorage.getItem(cacheKey);
-    if (!hasSeen && targetItem.introVideoUrl) {
-      setShowIntro(true);
-    }
-  }, [targetModule, targetItem.introVideoUrl]);
-
-  const handleIntroComplete = () => {
-    const cacheKey = `signsync_intro_seen_${targetModule.replace(/\s+/g, '_')}`;
-    localStorage.setItem(cacheKey, 'true');
-    setShowIntro(false);
-  };
-
-  const handleResumeFromIntervention = () => {
-    setShowIntervention(false);
-    failureCountRef.current = 0; // Reset counter after they watch the video
-  };
-
-  // Progression Safelock
-  useEffect(() => {
-    if (score >= 100 && !completed && !isAdvancing) {
-      setIsAdvancing(true);
-      failureCountRef.current = 0; // Reset failures on success
-      
-      const currentModule = flatCurriculum[currentIndex].module;
-      
-      if (currentIndex < flatCurriculum.length - 1) {
-        const nextModule = flatCurriculum[currentIndex + 1].module;
-        
-        // Did we just finish a module boundary?
-        if (currentModule !== nextModule) {
-           trackEvent('module_complete', { module: currentModule });
-           const courseId = location.state?.courseId;
-           if (courseId) {
-             API.post(`/courses/${courseId}/progress`, { module_name: currentModule })
-               .catch(err => console.error("Failed to save course progress", err));
-           }
-        }
-
-        setGestureStatus(`Detected! Loading ${flatCurriculum[currentIndex + 1].name || flatCurriculum[currentIndex + 1].sign}...`);
-        setTimeout(() => {
-          setScore(0);
-          setCurrentIndex(c => c + 1);
-          setIsAdvancing(false);
-        }, 1200);
-      } else {
-        setCompleted(true);
-        setGestureStatus("COURSE COMPLETE");
-        trackEvent('module_complete', { module: currentModule });
-        
-        // Save progress to DB permanently
-        const courseId = location.state?.courseId;
-        if (courseId) {
-          API.post(`/courses/${courseId}/progress`, { module_name: currentModule })
-            .catch(err => console.error("Failed to save course progress", err));
-        }
-      }
-    }
-  }, [score, completed, isAdvancing, currentIndex, flatCurriculum, trackEvent, location.state]);
-
-  const detect = useCallback(async (webcamRef, canvasRef, drawMesh) => {
-    if (
-      webcamRef.current &&
-      webcamRef.current.video.readyState === 4 &&
-      model && 
-      poseModel &&
-      !showIntro && 
-      !showIntervention
-    ) {
-      const video = webcamRef.current.video;
-      const videoWidth = webcamRef.current.video.videoWidth;
-      const videoHeight = webcamRef.current.video.videoHeight;
-      
-      webcamRef.current.video.width = videoWidth;
-      webcamRef.current.video.height = videoHeight;
-      canvasRef.current.width = videoWidth;
-      canvasRef.current.height = videoHeight;
-
-      const [hand, poses] = await Promise.all([
-        model.estimateHands(video),
-        poseModel.estimatePoses(video)
-      ]);
-
-      if (hand.length > 0 || poses.length > 0) {
-        drawMesh(hand, poses, canvasRef.current.getContext("2d"));
-        if (hand.length > 0 && !completed && !isAdvancing) {
-          const isMatch = evaluateGestureMatch(hand[0].landmarks, targetSign);
-          if (isMatch) {
-            setGestureStatus(`MATCHED: '${targetSign}'`);
-            setScore(prev => Math.min(prev + 10, 100));
-            // Decrease failure threshold slightly on partial success (tracking stability)
-            failureCountRef.current = Math.max(0, failureCountRef.current - 0.5);
-          } else {
-             setGestureStatus(`Tracking active... Make sign: '${targetSign}'`);
-             // Increment failure. If they hold wrong sign consistently, this builds up quickly.
-             failureCountRef.current += 1;
-             
-             if (failureCountRef.current > 30 && targetItem.correctionUrl) { // Approx 3 seconds of failing
-               setShowIntervention(true);
-               trackEvent('ai_failure', { sign: targetSign, module: targetModule });
-               failureCountRef.current = -50; // Delay next trigger
-             }
-          }
-        }
-      } else {
-        if (!isAdvancing) setGestureStatus(`Tracking active... Make sign: '${targetSign}'`);
-      }
-    }
-  }, [model, poseModel, completed, isAdvancing, targetSign, showIntro, showIntervention, targetItem.correctionUrl]);
-
+  // Webcam detection loop
   const [refs, setRefs] = useState(null);
   const handleFrameProcessed = useCallback((webcamRef, canvasRef, drawMesh) => {
     setRefs({ webcamRef, canvasRef, drawMesh });
@@ -211,7 +114,7 @@ export default function PracticeRoomPage() {
             <p className="text-muted text-sm">AI Video Tracker &middot; Hands-On Practice</p>
           </div>
           {targetItem.introVideoUrl && (
-             <button className="secondary" style={{ padding: "var(--space-2) var(--space-4)" }} onClick={() => setShowIntro(true)}>
+             <button className="secondary" style={{ padding: "var(--space-2) var(--space-4)" }} onClick={() => handleIntroComplete}>
                Replay Intro
              </button>
           )}
@@ -220,7 +123,7 @@ export default function PracticeRoomPage() {
 
       <section className="tracker-layout relative">
          <div style={{ position: "relative" }}>
-           <WebcamCanvas loading={loading} onFrameProcessed={handleFrameProcessed} />
+           <WebcamCanvas loading={modelLoading} onFrameProcessed={handleFrameProcessed} />
            {showIntervention && targetItem.correctionUrl && (
              <InterventionPanel 
                 videoUrl={targetItem.correctionUrl}
@@ -232,50 +135,15 @@ export default function PracticeRoomPage() {
 
          <aside style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
             {completed ? (
-             <div className="card-outer" style={{ background: "var(--color-brand-light)", borderColor: "var(--color-brand-dark)", textAlign: "center" }}>
-               <div style={{ width: "64px", height: "64px", margin: "0 auto var(--space-4)", borderRadius: "50%", background: "var(--color-brand)", display: "flex", justifyContent: "center", alignItems: "center" }}>
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-               </div>
-               <h2 style={{ color: "var(--color-brand-dark)", fontSize: "var(--text-lg)", marginBottom: "var(--space-2)" }}>Lesson Completed</h2>
-               <p style={{ fontSize: "var(--text-sm)", color: "var(--color-text-secondary)", marginBottom: "var(--space-6)" }}>You successfully passed the AI accuracy check for all signs in this lesson.</p>
-               <Link to="/dashboard">
-                 <button style={{ width: "100%" }}>Return to Dashboard</button>
-               </Link>
-             </div>
-           ) : (
-             <>
-               <div className="card-outer flex flex-col items-center justify-center text-center">
-                 <p className="text-muted font-semibold text-xs mb-2">TARGET SIGN</p>
-                 <div style={{ fontSize: "var(--text-3xl)", fontWeight: "800", color: "var(--color-text-primary)", margin: "var(--space-4) 0" }}>{targetSign}</div>
-                 <h3 aria-live="polite" aria-atomic="true" style={{ fontSize: "var(--text-sm)", color: gestureStatus.includes("MATCHED") ? "var(--color-brand)" : "var(--color-text-secondary)" }}>{gestureStatus}</h3>
-               </div>
-
-               <DemoLoop videoUrl={targetItem.demoUrl} signName={targetSign} />
-
-               <div className="card-outer">
-                 <p className="text-muted font-semibold text-xs mb-4">ACCURACY</p>
-                 <div style={{ height: "6px", background: "var(--color-overlay)", borderRadius: "var(--radius-full)", marginBottom: "var(--space-3)", overflow: "hidden" }}>
-                    <div style={{ background: "var(--color-brand)", width: `${score}%`, height: "100%", transition: "width 0.2s ease-out" }}></div>
-                 </div>
-                 <div className="flex justify-between text-sm">
-                   <span className="font-semibold">{score}% Matched</span>
-                   <span className="text-muted">Hold Form</span>
-                 </div>
-               </div>
-
-               <div className="card-inner" style={{ marginTop: "auto" }}>
-                  <div className="flex items-center justify-between" style={{ marginBottom: "var(--space-4)" }}>
-                     <p style={{ fontSize: "var(--text-xs)", color: "var(--color-text-primary)", fontWeight: "700" }}>PROGRESS</p>
-                     <p style={{ fontSize: "var(--text-xs)", color: "var(--color-text-muted)" }}>{currentIndex + 1} of {flatCurriculum.length}</p>
-                  </div>
-                  <div style={{ display: "flex", gap: "6px" }}>
-                    {flatCurriculum.map((item, idx) => (
-                      <div key={idx} style={{ flex: 1, height: "4px", background: idx < currentIndex ? "var(--color-brand)" : "var(--color-border)", borderRadius: "var(--radius-full)" }}></div>
-                    ))}
-                  </div>
-               </div>
-             </>
-           )}
+              <CompletionCard />
+            ) : (
+              <>
+                <TargetSignCard targetSign={targetSign} gestureStatus={gestureStatus} />
+                <DemoLoop videoUrl={targetItem.demoUrl} signName={targetSign} />
+                <AccuracyMeter score={score} />
+                <ProgressBar currentIndex={currentIndex} total={flatCurriculum.length} items={flatCurriculum} />
+              </>
+            )}
          </aside>
       </section>
     </div>
