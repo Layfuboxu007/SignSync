@@ -2,6 +2,14 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useUserStore } from "../../store/userStore";
 import { LogIn, UserPlus, Menu, X } from "lucide-react";
+
+// Map roles to their home dashboard
+const ROLE_DASHBOARD = {
+  admin: "/admin",
+  instructor: "/instructor/dashboard",
+  learner: "/dashboard",
+  student: "/dashboard",
+};
 import ProfileMenu from "./ProfileMenu";
 
 const links = [
@@ -11,9 +19,10 @@ const links = [
 ];
 
 export default function Navbar() {
-  const { session } = useUserStore();
+  const { session, profile } = useUserStore();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const dashboardPath = ROLE_DASHBOARD[profile?.role] || "/dashboard";
 
   return (
     <>
@@ -37,7 +46,7 @@ export default function Navbar() {
         <div className="navbar-actions">
           {session ? (
             <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)" }}>
-              <Link to="/dashboard" style={{ color: "var(--color-text-primary)", fontWeight: "500", fontSize: "var(--text-sm)" }}>
+              <Link to={dashboardPath} style={{ color: "var(--color-text-primary)", fontWeight: "500", fontSize: "var(--text-sm)" }}>
                 Dashboard
               </Link>
               <ProfileMenu />
@@ -94,7 +103,7 @@ export default function Navbar() {
 
             <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: "var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
               {session ? (
-                <Link to="/dashboard" onClick={() => setMobileOpen(false)}>
+                <Link to={dashboardPath} onClick={() => setMobileOpen(false)}>
                   <button style={{ width: "100%" }}>Go to Dashboard</button>
                 </Link>
               ) : (

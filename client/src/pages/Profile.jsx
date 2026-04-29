@@ -16,6 +16,7 @@ function Profile() {
   const [errorMsg, setErrorMsg] = useState("");
   const navigate = useNavigate();
   const { logout, profile } = useUserStore();
+  const isStudent = profile?.role === 'learner' || profile?.role === 'student';
 
   const displayName = profile?.first_name
     ? `${profile.first_name} ${profile.last_name || ""}`.trim()
@@ -123,7 +124,7 @@ function Profile() {
             <span className="badge" style={{ textTransform: "capitalize" }}>
               {profile?.role || "learner"}
             </span>
-            {profile?.membership_status === 'member' ? (
+            {isStudent && (profile?.membership_status === 'member' ? (
               <span className="badge" style={{ background: "hsla(160, 84%, 39%, 0.1)", color: "var(--color-success)", borderColor: "hsla(160, 84%, 39%, 0.3)" }}>
                 <ShieldCheck size={12} /> Active Member
               </span>
@@ -131,7 +132,7 @@ function Profile() {
               <span className="badge" style={{ background: "var(--color-overlay)", color: "var(--color-text-muted)", borderColor: "var(--color-border)" }}>
                 Free Tier
               </span>
-            )}
+            ))}
           </div>
         </div>
       </div>
@@ -139,8 +140,8 @@ function Profile() {
       {errorMsg && <Alert type="error">Error: {errorMsg}</Alert>}
       {successMsg && <Alert type="success">{successMsg}</Alert>}
 
-      {/* Membership */}
-      {profile?.membership_status !== 'member' && (
+      {/* Membership — students only */}
+      {isStudent && profile?.membership_status !== 'member' && (
         <div className="card-outer" style={{ marginBottom: "var(--space-8)", display: "flex", alignItems: "center", gap: "var(--space-5)", background: "linear-gradient(135deg, var(--color-brand-light) 0%, var(--color-canvas) 100%)", borderColor: "var(--color-brand)" }}>
           <div style={{ color: "var(--color-brand)", flexShrink: 0 }}>
             <Crown size={32} strokeWidth={1.5} />
@@ -181,28 +182,30 @@ function Profile() {
         </button>
       </form>
 
-      {/* Danger Zone */}
-      <div className="card-outer" style={{ borderColor: "hsla(0, 84%, 60%, 0.3)" }}>
-        <h3 className="flex items-center gap-2" style={{ fontSize: "var(--text-base)", marginBottom: "var(--space-2)", color: "var(--color-danger)" }}>
-          <ShieldAlert size={16} /> Danger Zone
-        </h3>
-        <p className="text-muted text-sm" style={{ marginBottom: "var(--space-5)" }}>
-          Permanently delete your account and all associated data. This cannot be undone.
-        </p>
-        <button
-          type="button"
-          onClick={handleDeleteAccount}
-          disabled={deleteLoading}
-          style={{
-            width: "100%",
-            background: "hsla(0, 84%, 60%, 0.1)",
-            color: "var(--color-danger)",
-            border: "1px solid hsla(0, 84%, 60%, 0.3)"
-          }}
-        >
-          {deleteLoading ? "Deleting..." : "Delete Account"}
-        </button>
-      </div>
+      {/* Danger Zone — students only (admin cannot self-delete) */}
+      {isStudent && (
+        <div className="card-outer" style={{ borderColor: "hsla(0, 84%, 60%, 0.3)" }}>
+          <h3 className="flex items-center gap-2" style={{ fontSize: "var(--text-base)", marginBottom: "var(--space-2)", color: "var(--color-danger)" }}>
+            <ShieldAlert size={16} /> Danger Zone
+          </h3>
+          <p className="text-muted text-sm" style={{ marginBottom: "var(--space-5)" }}>
+            Permanently delete your account and all associated data. This cannot be undone.
+          </p>
+          <button
+            type="button"
+            onClick={handleDeleteAccount}
+            disabled={deleteLoading}
+            style={{
+              width: "100%",
+              background: "hsla(0, 84%, 60%, 0.1)",
+              color: "var(--color-danger)",
+              border: "1px solid hsla(0, 84%, 60%, 0.3)"
+            }}
+          >
+            {deleteLoading ? "Deleting..." : "Delete Account"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

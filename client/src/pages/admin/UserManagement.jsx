@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { API } from "../../api";
-import { Users, MoreVertical, Shield, GraduationCap, User } from "lucide-react";
+import { Users, MoreVertical, Shield, GraduationCap, User, Download } from "lucide-react";
 
 export default function UserManagement() {
   const [users, setUsers] = useState([]);
@@ -20,63 +20,142 @@ export default function UserManagement() {
     fetchUsers();
   }, []);
 
+  const handleExportCSV = () => {
+    if (!users.length) return;
+    
+    // Create CSV header
+    const headers = ["ID", "First Name", "Last Name", "Email", "Role", "Membership Status", "Joined Date"];
+    
+    // Create CSV rows
+    const rows = users.map(u => [
+      u.id,
+      u.first_name || "",
+      u.last_name || "",
+      u.email || "",
+      u.role || "learner",
+      u.membership_status || "free",
+      new Date(u.created_at).toISOString().split('T')[0]
+    ]);
+    
+    // Combine and encode
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
+    ].join("\n");
+    
+    // Trigger download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `signsync_users_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const getRoleIcon = (role) => {
     switch (role) {
-      case 'admin': return <Shield size={14} className="text-danger" />;
-      case 'instructor': return <GraduationCap size={14} className="text-warning" />;
-      default: return <User size={14} className="text-muted" />;
+      case 'admin': return <Shield size={14} color="#ef4444" />; // Red 500
+      case 'instructor': return <GraduationCap size={14} color="#d97706" />; // Amber 600
+      default: return <User size={14} color="#2563eb" />; // Blue 600
     }
   };
 
-  if (loading) return <div className="p-8 text-center text-muted">Loading Directory...</div>;
+  if (loading) return (
+    <div style={{ padding: "40px", textAlign: "center", color: "#64748b", fontFamily: "'Fira Code', monospace" }}>
+      <div style={{ display: "inline-block", padding: "16px", borderRadius: "16px", background: "#ffffff", border: "1px solid #e2e8f0" }}>
+        <Users size={24} color="#2563eb" className="animate-pulse mb-2 mx-auto" />
+        Loading Directory...
+      </div>
+    </div>
+  );
 
   return (
-    <div className="animate-fade-in" style={{ padding: "var(--space-6) var(--space-8)", maxWidth: "1400px", margin: "0 auto" }}>
-      <div className="flex items-center justify-between" style={{ marginBottom: "var(--space-8)" }}>
+    <div className="animate-fade-in" style={{ maxWidth: "1400px", margin: "0 auto" }}>
+      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: "32px" }}>
         <div>
-          <h1 style={{ fontSize: "var(--text-2xl)", color: "var(--color-brand-dark)", marginBottom: "var(--space-1)", fontFamily: "Fira Code, monospace" }}>User Directory</h1>
-          <p className="text-muted text-sm">Manage roles and monitor student progress.</p>
+          <h1 style={{ fontSize: "28px", color: "#0f172a", marginBottom: "4px", fontWeight: "700" }}>User Directory</h1>
+          <p style={{ color: "#64748b", fontSize: "14px" }}>Manage roles and monitor student progress.</p>
         </div>
-        <button className="primary flex items-center gap-2"><Users size={18} /> Export CSV</button>
+        <button 
+          onClick={handleExportCSV}
+          style={{
+            display: "flex", alignItems: "center", gap: "8px",
+            background: "#eff6ff",
+            color: "#2563eb", border: "1px solid #bfdbfe",
+            padding: "8px 16px", borderRadius: "8px", fontSize: "14px", fontWeight: "600",
+            cursor: "pointer", transition: "all 200ms ease"
+          }}
+          onMouseOver={(e) => { e.currentTarget.style.background = "#dbeafe"; }}
+          onMouseOut={(e) => { e.currentTarget.style.background = "#eff6ff"; }}
+        >
+          <Download size={16} /> Export CSV
+        </button>
       </div>
 
-      <div className="card-outer p-0 overflow-hidden">
+      <div style={{ 
+        background: "#ffffff",
+        border: "1px solid #e2e8f0",
+        borderRadius: "16px",
+        overflow: "hidden",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)"
+      }}>
         <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
           <thead>
-            <tr style={{ borderBottom: "1px solid var(--color-border)", backgroundColor: "rgba(0,0,0,0.02)" }}>
-              <th style={{ padding: "var(--space-4)", fontSize: "var(--text-xs)", color: "var(--color-text-muted)", fontWeight: "600", textTransform: "uppercase" }}>User</th>
-              <th style={{ padding: "var(--space-4)", fontSize: "var(--text-xs)", color: "var(--color-text-muted)", fontWeight: "600", textTransform: "uppercase" }}>Role</th>
-              <th style={{ padding: "var(--space-4)", fontSize: "var(--text-xs)", color: "var(--color-text-muted)", fontWeight: "600", textTransform: "uppercase" }}>Tier</th>
-              <th style={{ padding: "var(--space-4)", fontSize: "var(--text-xs)", color: "var(--color-text-muted)", fontWeight: "600", textTransform: "uppercase" }}>Joined</th>
-              <th style={{ padding: "var(--space-4)", width: "50px" }}></th>
+            <tr style={{ borderBottom: "1px solid #e2e8f0", backgroundColor: "#f8fafc" }}>
+              <th style={{ padding: "16px 24px", fontSize: "11px", color: "#64748b", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.05em" }}>User</th>
+              <th style={{ padding: "16px 24px", fontSize: "11px", color: "#64748b", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.05em" }}>Role</th>
+              <th style={{ padding: "16px 24px", fontSize: "11px", color: "#64748b", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.05em" }}>Tier</th>
+              <th style={{ padding: "16px 24px", fontSize: "11px", color: "#64748b", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.05em" }}>Joined</th>
+              <th style={{ padding: "16px 24px", width: "50px" }}></th>
             </tr>
           </thead>
           <tbody>
-            {users.map(u => (
-              <tr key={u.id} style={{ borderBottom: "1px solid var(--color-border)", transition: "background 0.2s" }} className="hover:bg-slate-50">
-                <td style={{ padding: "var(--space-4)" }}>
-                  <div className="font-semibold text-sm" style={{ color: "var(--color-text-primary)" }}>{u.first_name} {u.last_name}</div>
-                  <div className="text-xs text-muted" style={{ fontFamily: "Fira Code, monospace" }}>{u.email}</div>
+            {users.map((u, idx) => (
+              <tr 
+                key={u.id} 
+                style={{ 
+                  borderBottom: idx === users.length - 1 ? "none" : "1px solid #f1f5f9", 
+                  transition: "background 200ms ease" 
+                }} 
+                onMouseOver={(e) => { e.currentTarget.style.backgroundColor = "#f8fafc"; }}
+                onMouseOut={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+              >
+                <td style={{ padding: "16px 24px" }}>
+                  <div style={{ color: "#0f172a", fontSize: "14px", fontWeight: "600", marginBottom: "4px" }}>{u.first_name} {u.last_name}</div>
+                  <div style={{ color: "#64748b", fontSize: "12px", fontFamily: "'Fira Code', monospace" }}>{u.email}</div>
                 </td>
-                <td style={{ padding: "var(--space-4)" }}>
-                  <div className="flex items-center gap-2 text-sm capitalize">
+                <td style={{ padding: "16px 24px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", color: "#334155", textTransform: "capitalize" }}>
                     {getRoleIcon(u.role)}
                     {u.role || 'learner'}
                   </div>
                 </td>
-                <td style={{ padding: "var(--space-4)" }}>
-                  <span className="badge" style={{ 
-                    backgroundColor: u.membership_status === 'premium' ? "hsla(45, 93%, 47%, 0.1)" : "var(--color-overlay)",
-                    color: u.membership_status === 'premium' ? "var(--color-warning)" : "var(--color-text-muted)"
+                <td style={{ padding: "16px 24px" }}>
+                  <span style={{ 
+                    display: "inline-block",
+                    padding: "4px 10px",
+                    borderRadius: "20px",
+                    fontSize: "12px",
+                    fontWeight: "600",
+                    backgroundColor: u.membership_status === 'premium' ? "#fef3c7" : "#f1f5f9",
+                    color: u.membership_status === 'premium' ? "#d97706" : "#64748b",
+                    border: u.membership_status === 'premium' ? "1px solid #fde68a" : "1px solid #e2e8f0",
+                    textTransform: "capitalize"
                   }}>
                     {u.membership_status || 'free'}
                   </span>
                 </td>
-                <td style={{ padding: "var(--space-4)", fontSize: "var(--text-sm)", color: "var(--color-text-muted)" }}>
-                  {new Date(u.created_at).toLocaleDateString()}
+                <td style={{ padding: "16px 24px", fontSize: "14px", color: "#64748b" }}>
+                  {new Date(u.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                 </td>
-                <td style={{ padding: "var(--space-4)", textAlign: "center" }}>
-                  <button style={{ padding: "var(--space-2)", background: "transparent", color: "var(--color-text-muted)" }}>
+                <td style={{ padding: "16px 24px", textAlign: "center" }}>
+                  <button style={{ padding: "8px", background: "transparent", color: "#94a3b8", cursor: "pointer", border: "none", borderRadius: "8px", transition: "all 200ms ease" }}
+                    onMouseOver={(e) => { e.currentTarget.style.color = "#0f172a"; e.currentTarget.style.background = "#f1f5f9"; }}
+                    onMouseOut={(e) => { e.currentTarget.style.color = "#94a3b8"; e.currentTarget.style.background = "transparent"; }}
+                  >
                     <MoreVertical size={18} />
                   </button>
                 </td>

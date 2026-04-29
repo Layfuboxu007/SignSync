@@ -13,27 +13,31 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-async function setFirstUserAsAdmin() {
-  console.log("Looking for users to promote to admin...");
-  
-  // Get the first user
-  const { data: users, error: fetchError } = await supabase
+async function setUserAsAdmin(targetEmail) {
+  console.log(`Looking for user with email: ${targetEmail}...`);
+
+  const { data: user, error: fetchError } = await supabase
     .from('users')
     .select('id, email, role')
-    .limit(1);
+    .eq('email', targetEmail)
+    .single();
 
   if (fetchError) {
-    console.error("Error fetching users:", fetchError.message);
+    console.error("Error fetching user:", fetchError.message);
     return;
   }
 
-  if (!users || users.length === 0) {
-    console.log("No users found in the public.users table. Please register a user first through the app, then run this script again.");
+  if (!user) {
+    console.log(`No user found with email: ${targetEmail}. Please register this user first through the app, then run this script again.`);
     return;
   }
 
-  const user = users[0];
   console.log(`Found user: ${user.email} (Current role: ${user.role})`);
+
+  if (user.role === 'admin') {
+    console.log("User is already an admin. No changes needed.");
+    return;
+  }
 
   const { data, error: updateError } = await supabase
     .from('users')
@@ -48,4 +52,5 @@ async function setFirstUserAsAdmin() {
   }
 }
 
-setFirstUserAsAdmin();
+const email = process.argv[2] || 'jandieb@gmail.com';
+setUserAsAdmin(email);

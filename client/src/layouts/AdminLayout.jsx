@@ -1,23 +1,17 @@
 import React from "react";
-import { Outlet, Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Users, ActivitySquare, Settings } from "lucide-react";
+import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
+import { LayoutDashboard, Users, ActivitySquare, LogOut, UserCircle } from "lucide-react";
 import { useUserStore } from "../store/userStore";
 
 export default function AdminLayout() {
   const location = useLocation();
-  const { profile } = useUserStore();
+  const navigate = useNavigate();
+  const { profile, logout } = useUserStore();
 
-  if (profile?.role !== 'admin') {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="card-outer text-center max-w-md">
-          <h2 style={{ fontSize: "var(--text-xl)", color: "var(--color-danger)", marginBottom: "var(--space-2)" }}>Access Denied</h2>
-          <p className="text-muted text-sm mb-6">You do not have permission to view the admin panel.</p>
-          <Link to="/dashboard"><button style={{ width: "100%" }}>Return to App</button></Link>
-        </div>
-      </div>
-    );
-  }
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
+  };
 
   const navLinks = [
     { path: "/admin", icon: LayoutDashboard, label: "Overview" },
@@ -26,22 +20,61 @@ export default function AdminLayout() {
   ];
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "var(--color-canvas)" }}>
+    <div style={{ 
+      display: "flex", 
+      minHeight: "100vh", 
+      backgroundColor: "#faf9f6", // Alabaster background
+      color: "#0f172a", // Slate 900
+      fontFamily: "'Fira Sans', sans-serif" 
+    }}>
       {/* Admin Sidebar */}
       <aside style={{
         width: "260px",
-        background: "linear-gradient(180deg, #1E3A8A 0%, #1E40AF 100%)",
-        color: "#fff",
+        backgroundColor: "#ffffff", // Pure white
+        borderRight: "1px solid #e2e8f0", // Slate 200
         display: "flex",
         flexDirection: "column",
         flexShrink: 0
       }}>
-        <div style={{ padding: "var(--space-6)", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
-          <h1 style={{ fontSize: "var(--text-lg)", fontWeight: "800", letterSpacing: "0.5px" }}>SignSync Admin</h1>
-          <p style={{ fontSize: "var(--text-xs)", opacity: 0.7, fontFamily: "Fira Code, monospace" }}>v2.0.0-beta</p>
+        {/* Header with user identity */}
+        <div style={{ padding: "32px 24px", borderBottom: "1px solid #e2e8f0" }}>
+          <h1 style={{ fontSize: "20px", fontWeight: "700", letterSpacing: "0.5px", color: "#0f172a" }}>SignSync Admin</h1>
+          <p style={{ fontSize: "12px", color: "#2563eb", fontFamily: "'Fira Code', monospace", marginTop: "4px" }}>v2.0.0-beta</p>
+          {profile && (
+            <div style={{ 
+              marginTop: "24px", padding: "16px", 
+              background: "#f8fafc", 
+              border: "1px solid #e2e8f0",
+              borderRadius: "12px" 
+            }}>
+              <div style={{ fontSize: "14px", fontWeight: "600", color: "#0f172a" }}>
+                {profile.first_name} {profile.last_name}
+              </div>
+              <div style={{ 
+                fontSize: "12px", color: "#64748b", marginTop: "4px", 
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" 
+              }}>
+                {profile.email}
+              </div>
+              <div style={{
+                display: "inline-block", marginTop: "12px",
+                fontSize: "10px", fontWeight: "700", letterSpacing: "0.05em",
+                padding: "4px 8px", borderRadius: "6px",
+                background: "#eff6ff", color: "#2563eb", 
+                border: "1px solid #bfdbfe",
+                textTransform: "uppercase", fontFamily: "'Fira Code', monospace"
+              }}>
+                {profile.role}
+              </div>
+            </div>
+          )}
         </div>
-        
-        <nav style={{ padding: "var(--space-4)", flex: 1, display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+
+        {/* Navigation */}
+        <nav style={{ padding: "24px 16px", flex: 1, display: "flex", flexDirection: "column", gap: "8px" }}>
+          <div style={{ fontSize: "11px", fontWeight: "600", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "8px", paddingLeft: "12px" }}>
+            Menu
+          </div>
           {navLinks.map((link) => {
             const isActive = location.pathname === link.path;
             return (
@@ -49,31 +82,84 @@ export default function AdminLayout() {
                 key={link.path}
                 to={link.path}
                 style={{
-                  display: "flex", alignItems: "center", gap: "var(--space-3)",
-                  padding: "var(--space-3)", borderRadius: "var(--radius-md)",
-                  backgroundColor: isActive ? "rgba(255,255,255,0.15)" : "transparent",
-                  color: isActive ? "#fff" : "rgba(255,255,255,0.7)",
+                  display: "flex", alignItems: "center", gap: "12px",
+                  padding: "12px", borderRadius: "10px",
+                  backgroundColor: isActive ? "#eff6ff" : "transparent",
+                  color: isActive ? "#2563eb" : "#64748b",
                   fontWeight: isActive ? "600" : "500",
-                  transition: "all 0.2s"
+                  transition: "all 200ms ease",
+                  border: isActive ? "1px solid #bfdbfe" : "1px solid transparent",
+                  boxShadow: isActive ? "0 1px 2px rgba(0,0,0,0.02)" : "none"
+                }}
+                onMouseOver={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.color = "#0f172a";
+                    e.currentTarget.style.backgroundColor = "#f1f5f9";
+                  }
+                }}
+                onMouseOut={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.color = "#64748b";
+                    e.currentTarget.style.backgroundColor = "transparent";
+                  }
                 }}
               >
-                <link.icon size={18} />
-                <span style={{ fontSize: "var(--text-sm)" }}>{link.label}</span>
+                <link.icon size={18} color={isActive ? "#2563eb" : "currentColor"} />
+                <span style={{ fontSize: "14px" }}>{link.label}</span>
               </Link>
             );
           })}
         </nav>
 
-        <div style={{ padding: "var(--space-6)", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
-          <Link to="/dashboard" style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", color: "rgba(255,255,255,0.7)", fontSize: "var(--text-sm)" }}>
-            ← Exit Admin
+        {/* Footer: Profile + Logout */}
+        <div style={{ padding: "24px 16px", borderTop: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: "8px" }}>
+          <Link
+            to="/admin/profile"
+            style={{
+              display: "flex", alignItems: "center", gap: "12px",
+              padding: "12px", borderRadius: "10px",
+              color: "#64748b", fontSize: "14px", fontWeight: "500",
+              transition: "all 200ms ease"
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.color = "#0f172a";
+              e.currentTarget.style.backgroundColor = "#f1f5f9";
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.color = "#64748b";
+              e.currentTarget.style.backgroundColor = "transparent";
+            }}
+          >
+            <UserCircle size={18} /> My Profile
           </Link>
+          <button
+            onClick={handleLogout}
+            style={{
+              display: "flex", alignItems: "center", gap: "12px",
+              padding: "12px", borderRadius: "10px",
+              color: "#ef4444", background: "#fef2f2",
+              border: "1px solid #fecaca",
+              fontSize: "14px", fontWeight: "500", cursor: "pointer",
+              width: "100%", transition: "all 200ms ease",
+              fontFamily: "'Fira Sans', sans-serif"
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.background = "#fee2e2";
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.background = "#fef2f2";
+            }}
+          >
+            <LogOut size={18} /> Sign Out
+          </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main style={{ flex: 1, height: "100vh", overflowY: "auto" }}>
-        <Outlet />
+      <main style={{ flex: 1, height: "100vh", overflowY: "auto", position: "relative" }}>
+        <div style={{ padding: "40px" }}>
+          <Outlet />
+        </div>
       </main>
     </div>
   );

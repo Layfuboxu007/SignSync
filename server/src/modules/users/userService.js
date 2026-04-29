@@ -12,12 +12,19 @@ exports.lookupEmail = async (username) => {
   return data.email;
 };
 
+const ALLOWED_REGISTRATION_ROLES = ["learner", "instructor"];
+
 exports.syncUser = async (userData) => {
+  // CRITICAL: Never allow self-assignment to admin/privileged roles via registration
+  const safeRole = ALLOWED_REGISTRATION_ROLES.includes(userData.role)
+    ? userData.role
+    : "learner";
+
   const { error } = await supabase.from("users").insert({
     first_name: userData.firstName,
     last_name: userData.lastName,
     username: userData.username,
-    role: userData.role,
+    role: safeRole,
     email: userData.email,
     password_hash: "supabase-auth",
     membership_status: "free"

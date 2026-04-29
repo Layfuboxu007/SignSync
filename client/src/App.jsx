@@ -24,6 +24,7 @@ import PracticeRoomPage from "./pages/practice/PracticeRoomPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import UserManagement from "./pages/admin/UserManagement";
 import ActivityLogs from "./pages/admin/ActivityLogs";
+import AdminProfile from "./pages/admin/AdminProfile";
 
 function App() {
   const { initializeSession } = useUserStore();
@@ -46,28 +47,42 @@ function App() {
           <Route path="/update-password" element={<UpdatePassword />} />
         </Route>
 
-        {/* App: sidebar + header (protected) */}
-        <Route element={<ProtectedRoute />}>
+        {/* ==========================================
+            ROLE-SCOPED ROUTE GROUPS (Strict RBAC)
+            ========================================== */}
+
+        {/* Student-only routes */}
+        <Route element={<ProtectedRoute allowedRoles={["learner", "student"]} />}>
           <Route element={<AppLayout />}>
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/profile" element={<Profile />} />
             <Route path="/start" element={<StartPage />} />
           </Route>
+          <Route element={<FocusLayout />}>
+            <Route path="/practice" element={<PracticeRoomPage />} />
+          </Route>
+        </Route>
 
+        {/* Instructor-only routes */}
+        <Route element={<ProtectedRoute allowedRoles={["instructor"]} />}>
           <Route element={<AppLayout isInstructor />}>
             <Route path="/instructor/dashboard" element={<InstructorDashboard />} />
           </Route>
+        </Route>
 
-          {/* Admin routes */}
+        {/* Admin-only routes */}
+        <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
           <Route element={<AdminLayout />}>
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/users" element={<UserManagement />} />
             <Route path="/admin/logs" element={<ActivityLogs />} />
+            <Route path="/admin/profile" element={<AdminProfile />} />
           </Route>
+        </Route>
 
-          {/* Focus: minimal header for practice */}
-          <Route element={<FocusLayout />}>
-            <Route path="/practice" element={<PracticeRoomPage />} />
+        {/* Shared routes (all authenticated roles can access) */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<AppLayout />}>
+            <Route path="/profile" element={<Profile />} />
           </Route>
         </Route>
       </Routes>

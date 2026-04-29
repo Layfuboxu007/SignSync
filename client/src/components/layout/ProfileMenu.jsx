@@ -27,6 +27,9 @@ export default function ProfileMenu() {
 
   if (!profile) return null;
 
+  // Role-aware profile path
+  const profilePath = profile.role === 'admin' ? '/admin/profile' : '/profile';
+
   // Use initials for avatar
   const initials = (profile.first_name?.[0] || profile.username?.[0] || "?").toUpperCase();
 
@@ -74,7 +77,7 @@ export default function ProfileMenu() {
           
           <div style={{ padding: "8px" }}>
             <Link 
-              to="/profile" 
+              to={profilePath} 
               onClick={() => setIsOpen(false)}
               style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px 12px", borderRadius: "var(--radius-md)", color: "var(--color-text-secondary)", fontSize: "var(--text-sm)", transition: "all 0.2s" }}
               className="hover:bg-slate-100 hover:text-brand"
@@ -82,7 +85,7 @@ export default function ProfileMenu() {
               <User size={16} /> View Profile
             </Link>
             <Link 
-              to="/profile?tab=settings" 
+              to={`${profilePath}?tab=settings`} 
               onClick={() => setIsOpen(false)}
               style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px 12px", borderRadius: "var(--radius-md)", color: "var(--color-text-secondary)", fontSize: "var(--text-sm)", transition: "all 0.2s" }}
               className="hover:bg-slate-100 hover:text-brand"

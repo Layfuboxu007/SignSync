@@ -1,6 +1,14 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useUserStore } from "../../store/userStore";
 
+// Map each role to its "home" page for redirects
+const ROLE_HOME = {
+  admin: "/admin",
+  instructor: "/instructor/dashboard",
+  learner: "/dashboard",
+  student: "/dashboard",
+};
+
 export default function ProtectedRoute({ allowedRoles }) {
   const { session, profile, loading } = useUserStore();
 
@@ -12,14 +20,17 @@ export default function ProtectedRoute({ allowedRoles }) {
     );
   }
 
+  // Not authenticated → login
   if (!session) {
     return <Navigate to="/login" replace />;
   }
 
+  // Role enforcement: if allowedRoles is specified, check the user's role
   if (allowedRoles && profile) {
-    // If the component requires instructor, but user is not instructor
-    if (allowedRoles.includes('instructor') && profile.role !== 'instructor') {
-      return <Navigate to="/dashboard" replace />;
+    if (!allowedRoles.includes(profile.role)) {
+      // Redirect to the user's role-appropriate home page
+      const home = ROLE_HOME[profile.role] || "/dashboard";
+      return <Navigate to={home} replace />;
     }
   }
 
