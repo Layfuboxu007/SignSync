@@ -11,13 +11,25 @@ export default function AdminDashboard() {
   const [engagement, setEngagement] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [filterType, setFilterType] = useState("7"); // '7', '30', '90', 'custom'
+  const [startDate, setStartDate] = useState(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
     const fetchAdminData = async () => {
+      setLoading(true);
       try {
+        let urlOverview = `/api/admin/metrics/overview?days=${filterType !== 'custom' ? filterType : 0}`;
+        let urlEngagement = `/api/admin/metrics/engagement?days=${filterType !== 'custom' ? filterType : 0}`;
+        
+        if (filterType === 'custom') {
+           urlOverview += `&startDate=${startDate}&endDate=${endDate}`;
+           urlEngagement += `&startDate=${startDate}&endDate=${endDate}`;
+        }
+        
         const [overviewRes, engagementRes] = await Promise.all([
-          API.get("/api/admin/metrics/overview"),
-          API.get("/api/admin/metrics/engagement")
+          API.get(urlOverview),
+          API.get(urlEngagement)
         ]);
 
         const rawMetrics = overviewRes.data.recentMetrics || [];
@@ -41,7 +53,7 @@ export default function AdminDashboard() {
     };
 
     fetchAdminData();
-  }, []);
+  }, [filterType, startDate, endDate]);
 
   if (loading) return (
     <div style={{ padding: "40px", textAlign: "center", color: "#64748b", fontFamily: "'Fira Code', monospace" }}>
@@ -83,6 +95,25 @@ export default function AdminDashboard() {
     return null;
   };
 
+  const getDynamicInsights = () => {
+    if (!metrics || !metrics.chartData || metrics.chartData.length === 0) {
+      return "Insufficient data to generate insights.";
+    }
+    
+    const chart = metrics.chartData;
+    const first = chart[0];
+    const last = chart[chart.length - 1];
+    
+    let userTrend = "remained stable";
+    if (last.ActiveUsers > first.ActiveUsers) userTrend = `grown by ${last.ActiveUsers - first.ActiveUsers}`;
+    if (last.ActiveUsers < first.ActiveUsers) userTrend = `decreased by ${first.ActiveUsers - last.ActiveUsers}`;
+
+    const hardestModule = engagement && engagement.length > 0 ? engagement[0].module_name : "None";
+
+    const daysLabel = filterType === 'custom' ? `the selected period` : `the last ${filterType} days`;
+    return `Over ${daysLabel}, active user sessions have ${userTrend}. The most challenging module currently is "${hardestModule}". Consider adding supplementary video tutorials or slowing down the tracking requirement for this module to reduce failure rates.`;
+  };
+
   const cardStyle = {
     background: "#ffffff",
     border: "1px solid #e2e8f0",
@@ -95,9 +126,50 @@ export default function AdminDashboard() {
 
   return (
     <div className="animate-fade-in" style={{ maxWidth: "1400px", margin: "0 auto" }}>
-      <div style={{ marginBottom: "32px" }}>
-        <h1 style={{ fontSize: "28px", color: "#0f172a", marginBottom: "4px", fontWeight: "700" }}>System Analytics</h1>
-        <p style={{ color: "#64748b", fontSize: "14px" }}>Real-time overview of platform usage and AI tracker performance.</p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "32px" }}>
+        <div>
+          <h1 style={{ fontSize: "28px", color: "#0f172a", marginBottom: "4px", fontWeight: "700" }}>System Analytics</h1>
+          <p style={{ color: "#64748b", fontSize: "14px" }}>Real-time overview of platform usage and AI tracker performance.</p>
+        </div>
+        
+        <div>
+          <select 
+            value={filterType} 
+            onChange={(e) => setFilterType(e.target.value)}
+            style={{ 
+              padding: "8px 16px", 
+              borderRadius: "8px", 
+              border: "1px solid #e2e8f0", 
+              background: "#fff", 
+              color: "#0f172a",
+              fontWeight: "500",
+              cursor: "pointer",
+              outline: "none"
+            }}
+          >
+            <option value="7">Last 7 Days</option>
+            <option value="30">Last 30 Days</option>
+            <option value="90">Last 90 Days</option>
+            <option value="custom">Custom Date Range</option>
+          </select>
+
+          {filterType === 'custom' && (
+            <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+              <input 
+                type="date" 
+                value={startDate} 
+                onChange={e => setStartDate(e.target.value)}
+                style={{ padding: "6px 12px", borderRadius: "8px", border: "1px solid #e2e8f0", fontSize: "13px" }}
+              />
+              <input 
+                type="date" 
+                value={endDate} 
+                onChange={e => setEndDate(e.target.value)}
+                style={{ padding: "6px 12px", borderRadius: "8px", border: "1px solid #e2e8f0", fontSize: "13px" }}
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Bento Grid layout */}
@@ -174,10 +246,18 @@ export default function AdminDashboard() {
           </div>
         </div>
 
+        {/* Dynamic AI Insights */}
+        <div style={{ ...cardStyle, gridColumn: "span 12", background: "var(--color-brand-light)", borderColor: "var(--color-brand-dark)" }}>
+          <h3 style={{ fontSize: "16px", color: "var(--color-brand-dark)", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px", fontWeight: "600" }}>
+            🤖 AI Performance Insight
+          </h3>
+          <p style={{ color: "var(--color-brand-dark)", lineHeight: 1.6 }}>{getDynamicInsights()}</p>
+        </div>
+
         {/* Chart: Daily Active Users */}
         <div style={{ ...cardStyle, gridColumn: "span 8" }}>
           <h3 style={{ fontSize: "16px", color: "#0f172a", marginBottom: "24px", display: "flex", alignItems: "center", gap: "8px", fontWeight: "600" }}>
-            <BarChart2 size={18} color="#2563eb" /> Daily Active Users (7D)
+            <BarChart2 size={18} color="#2563eb" /> Daily Active Users {filterType === 'custom' ? '(Custom Range)' : `(${filterType}D)`}
           </h3>
           <div style={{ height: "300px", width: "100%" }}>
             <ResponsiveContainer>
@@ -204,7 +284,7 @@ export default function AdminDashboard() {
           <h3 style={{ fontSize: "16px", color: "#0f172a", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px", fontWeight: "600" }}>
             <AlertCircle size={18} color="#d97706" /> Difficult Modules
           </h3>
-          <p style={{ fontSize: "12px", color: "#64748b", marginBottom: "24px" }}>Highest tracking failure rates (30D)</p>
+          <p style={{ fontSize: "12px", color: "#64748b", marginBottom: "24px" }}>Highest tracking failure rates {filterType === 'custom' ? '(Custom Range)' : `(${filterType}D)`}</p>
           <div style={{ height: "260px", width: "100%" }}>
             <ResponsiveContainer>
               <BarChart data={engagement || []} layout="vertical" margin={{ left: 0, right: 20, top: 0, bottom: 0 }}>

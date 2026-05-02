@@ -1,6 +1,6 @@
 import React from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Users, ActivitySquare, LogOut, UserCircle } from "lucide-react";
+import { LayoutDashboard, Users, ActivitySquare, LogOut, UserCircle, FileText } from "lucide-react";
 import { useUserStore } from "../store/userStore";
 
 export default function AdminLayout() {
@@ -16,7 +16,7 @@ export default function AdminLayout() {
   const navLinks = [
     { path: "/admin", icon: LayoutDashboard, label: "Overview" },
     { path: "/admin/users", icon: Users, label: "User Management" },
-    { path: "/admin/logs", icon: ActivitySquare, label: "Activity Logs" },
+    { path: "/admin/logs", icon: FileText, label: "Reports" },
   ];
 
   return (

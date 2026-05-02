@@ -5,7 +5,9 @@ import { evaluateGestureMatch } from "../../utils/gestureMath";
 import WebcamCanvas from "../../components/tracker/WebcamCanvas";
 import { DemoLoop } from "../../components/tutorials/DemoLoop";
 import { TutorialModal } from "../../components/tutorials/TutorialModal";
-import { InterventionPanel } from "../../components/tutorials/InterventionPanel";
+import InterventionPanel from "../../components/tutorials/InterventionPanel";
+import { PrivacyDisclosureModal } from "../../components/modals/PrivacyDisclosureModal";
+import { EnvironmentCheckWarning } from "../../components/tracker/EnvironmentCheckWarning";
 import { useAnalytics } from "../../hooks/useAnalytics";
 import { API } from "../../api";
 
@@ -41,7 +43,7 @@ export default function PracticeRoomPage() {
   const targetSign = targetItem.name || targetItem.sign;
   const targetModule = targetItem.module;
   
-  const { model, poseModel, loading } = useGestureTracker();
+  const { workerRef, loading } = useGestureTracker();
   
   const [gestureStatus, setGestureStatus] = useState(`Waiting for action...`);
   const [score, setScore] = useState(0);
@@ -51,7 +53,19 @@ export default function PracticeRoomPage() {
   // Tutorial System State
   const [showIntro, setShowIntro] = useState(false);
   const [showIntervention, setShowIntervention] = useState(false);
-  const failureCountRef = useRef(0);
+  const failureStartTimeRef = useRef(null);
+  const [lastErrorCode, setLastErrorCode] = useState(null);
+
+  // Phase 2 State
+  const [privacyAccepted, setPrivacyAccepted] = useState(localStorage.getItem('signsync_privacy_accepted') === 'true');
+  const [flashcardMode, setFlashcardMode] = useState(false);
+  const [showPerformanceWarning, setShowPerformanceWarning] = useState(false);
+  const [envWarning, setEnvWarning] = useState(null);
+  const envCheckedRef = useRef(false);
+
+  // Performance Tracking
+  const lastFrameTimeRef = useRef(null);
+  const lowFpsStartTimeRef = useRef(null);
 
   // Track Session Start
   useEffect(() => {
@@ -67,7 +81,7 @@ export default function PracticeRoomPage() {
     if (!hasSeen && targetItem.introVideoUrl) {
       setShowIntro(true);
     }
-  }, [targetModule, targetItem.introVideoUrl]);
+  }, [targetModule, targetItem.introVideoUrl, showIntro]);
 
   const handleIntroComplete = () => {
     const cacheKey = `signsync_intro_seen_${targetModule.replace(/\s+/g, '_')}`;
@@ -77,14 +91,14 @@ export default function PracticeRoomPage() {
 
   const handleResumeFromIntervention = () => {
     setShowIntervention(false);
-    failureCountRef.current = 0; // Reset counter after they watch the video
+    failureStartTimeRef.current = null; // Reset failure timer
   };
 
   // Progression Safelock
   useEffect(() => {
     if (score >= 100 && !completed && !isAdvancing) {
       setIsAdvancing(true);
-      failureCountRef.current = 0; // Reset failures on success
+      failureStartTimeRef.current = null; // Reset failure timer
       
       const currentModule = flatCurriculum[currentIndex].module;
       
@@ -122,15 +136,104 @@ export default function PracticeRoomPage() {
     }
   }, [score, completed, isAdvancing, currentIndex, flatCurriculum, trackEvent, location.state]);
 
-  const detect = useCallback(async (webcamRef, canvasRef, drawMesh) => {
+  // A ref to prevent sending too many frames if worker is busy
+  const isProcessingRef = useRef(false);
+
+  const processFrameResult = useCallback((hand, poses, refs) => {
+    isProcessingRef.current = false;
+    if (!refs || flashcardMode) return;
+
+    // Performance Monitoring (FPS calculation)
+    const now = Date.now();
+    const frameTime = now - lastFrameTimeRef.current;
+    lastFrameTimeRef.current = now;
+    
+    // Roughly if frameTime > 150ms it's < 7 FPS
+    if (frameTime > 150) {
+      if (!lowFpsStartTimeRef.current) lowFpsStartTimeRef.current = now;
+      else if (now - lowFpsStartTimeRef.current > 5000 && !showPerformanceWarning) {
+        setShowPerformanceWarning(true);
+        trackEvent('performance_degraded');
+      }
+    } else {
+      lowFpsStartTimeRef.current = null; // Reset if it recovers
+    }
+
+    if (hand.length > 0 || poses.length > 0) {
+      const handConfidence = hand[0]?.score || hand[0]?.handInViewConfidence || 0;
+
+      // Environment Pre-check (runs once)
+      if (!envCheckedRef.current && refs.canvasRef.current) {
+         envCheckedRef.current = true;
+         // Check lighting via a crude canvas sample
+         const ctx = refs.canvasRef.current.getContext("2d");
+         try {
+           const imageData = ctx.getImageData(0, 0, refs.canvasRef.current.width, refs.canvasRef.current.height);
+           const data = imageData.data;
+           let sum = 0;
+           // Sample every 10th pixel for performance
+           for (let i = 0; i < data.length; i += 40) {
+             const r = data[i], g = data[i+1], b = data[i+2];
+             sum += (0.299*r + 0.587*g + 0.114*b); 
+           }
+           const avgLuminance = sum / (data.length / 40);
+           
+           if (avgLuminance < 40) {
+             setEnvWarning("Your room appears too dark. Please turn on a light for better AI tracking.");
+           } else if (handConfidence > 0 && handConfidence < 0.6) {
+             setEnvWarning("Your background may be too cluttered. The AI is struggling to lock onto your hand.");
+           }
+         } catch (e) {
+           // Ignore canvas taint errors
+         }
+      }
+
+      // Confidence Gating
+      if (hand.length > 0 && handConfidence < 0.6) {
+        if (!isAdvancing) setGestureStatus(`Low visibility... adjust camera`);
+        return;
+      }
+
+      refs.drawMesh(hand, poses, refs.canvasRef.current.getContext("2d"));
+      if (hand.length > 0 && !completed && !isAdvancing) {
+        const { isMatch, errorCode } = evaluateGestureMatch(hand[0].landmarks, targetSign);
+        if (isMatch) {
+          setGestureStatus(`MATCHED: '${targetSign}'`);
+          setScore(prev => Math.min(prev + 10, 100));
+          failureStartTimeRef.current = null;
+        } else {
+           setGestureStatus(`Tracking active... Make sign: '${targetSign}'`);
+           
+           if (errorCode) setLastErrorCode(errorCode);
+
+           if (!failureStartTimeRef.current) {
+             failureStartTimeRef.current = Date.now();
+           } else if (Date.now() - failureStartTimeRef.current > 3000 && targetItem.correctionUrl) { 
+             setShowIntervention(true);
+             trackEvent('ai_failure', { sign: targetSign, module: targetModule, error: errorCode });
+             failureStartTimeRef.current = null;
+           }
+        }
+      }
+    } else {
+      if (!isAdvancing) setGestureStatus(`Tracking active... Make sign: '${targetSign}'`);
+    }
+  }, [completed, isAdvancing, targetSign, targetItem, trackEvent, targetModule, flashcardMode, showPerformanceWarning]);
+
+  const detect = useCallback(async (webcamRef, canvasRef) => {
     if (
       webcamRef.current &&
       webcamRef.current.video.readyState === 4 &&
-      model && 
-      poseModel &&
+      workerRef.current &&
+      !loading &&
       !showIntro && 
-      !showIntervention
+      !showIntervention &&
+      privacyAccepted &&
+      !flashcardMode &&
+      !showPerformanceWarning
     ) {
+      if (isProcessingRef.current) return;
+
       const video = webcamRef.current.video;
       const videoWidth = webcamRef.current.video.videoWidth;
       const videoHeight = webcamRef.current.video.videoHeight;
@@ -140,37 +243,16 @@ export default function PracticeRoomPage() {
       canvasRef.current.width = videoWidth;
       canvasRef.current.height = videoHeight;
 
-      const [hand, poses] = await Promise.all([
-        model.estimateHands(video),
-        poseModel.estimatePoses(video)
-      ]);
-
-      if (hand.length > 0 || poses.length > 0) {
-        drawMesh(hand, poses, canvasRef.current.getContext("2d"));
-        if (hand.length > 0 && !completed && !isAdvancing) {
-          const isMatch = evaluateGestureMatch(hand[0].landmarks, targetSign);
-          if (isMatch) {
-            setGestureStatus(`MATCHED: '${targetSign}'`);
-            setScore(prev => Math.min(prev + 10, 100));
-            // Decrease failure threshold slightly on partial success (tracking stability)
-            failureCountRef.current = Math.max(0, failureCountRef.current - 0.5);
-          } else {
-             setGestureStatus(`Tracking active... Make sign: '${targetSign}'`);
-             // Increment failure. If they hold wrong sign consistently, this builds up quickly.
-             failureCountRef.current += 1;
-             
-             if (failureCountRef.current > 30 && targetItem.correctionUrl) { // Approx 3 seconds of failing
-               setShowIntervention(true);
-               trackEvent('ai_failure', { sign: targetSign, module: targetModule });
-               failureCountRef.current = -50; // Delay next trigger
-             }
-          }
-        }
-      } else {
-        if (!isAdvancing) setGestureStatus(`Tracking active... Make sign: '${targetSign}'`);
+      isProcessingRef.current = true;
+      try {
+        const bitmap = await createImageBitmap(video);
+        workerRef.current.postMessage({ type: 'EVALUATE_FRAME', payload: bitmap }, [bitmap]);
+      } catch (err) {
+        console.error("Bitmap creation failed:", err);
+        isProcessingRef.current = false;
       }
     }
-  }, [model, poseModel, completed, isAdvancing, targetSign, showIntro, showIntervention, targetItem.correctionUrl]);
+  }, [workerRef, loading, showIntro, showIntervention, privacyAccepted, flashcardMode, showPerformanceWarning]);
 
   const [refs, setRefs] = useState(null);
   const handleFrameProcessed = useCallback((webcamRef, canvasRef, drawMesh) => {
@@ -182,15 +264,31 @@ export default function PracticeRoomPage() {
     savedDetect.current = detect;
   });
 
+  // Listener for worker messages
+  useEffect(() => {
+    if (!workerRef.current) return;
+    const worker = workerRef.current;
+    
+    const handleMessage = (e) => {
+      if (e.data.type === 'FRAME_RESULT') {
+        const { hand, poses } = e.data.payload;
+        if (refs) processFrameResult(hand, poses, refs);
+      }
+    };
+    
+    worker.addEventListener('message', handleMessage);
+    return () => worker.removeEventListener('message', handleMessage);
+  }, [workerRef, refs, processFrameResult]);
+
   useEffect(() => {
     let interval;
-    if (refs && model && poseModel) {
+    if (refs && workerRef.current && !flashcardMode) {
       interval = setInterval(() => {
         savedDetect.current(refs.webcamRef, refs.canvasRef, refs.drawMesh);
       }, 100); 
     }
     return () => clearInterval(interval);
-  }, [refs, model, poseModel]);
+  }, [refs, workerRef]);
 
   return (
     <div className="container relative" style={{ padding: "var(--space-6) var(--space-5)", maxWidth: "1200px", margin: "0 auto", position: "relative" }}>
@@ -218,15 +316,48 @@ export default function PracticeRoomPage() {
         </div>
       </div>
 
+      {!privacyAccepted && (
+        <PrivacyDisclosureModal onAccept={() => {
+          localStorage.setItem('signsync_privacy_accepted', 'true');
+          setPrivacyAccepted(true);
+        }} />
+      )}
+
+      {showPerformanceWarning && !flashcardMode && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
+           <div className="card-outer animate-fade-in" style={{ maxWidth: "400px", textAlign: "center", padding: "var(--space-6)", background: "#fff" }}>
+              <h2 style={{ fontSize: "var(--text-lg)", marginBottom: "var(--space-2)" }}>Performance Issue Detected</h2>
+              <p className="text-muted text-sm mb-4">Your device is struggling to run the AI model smoothly. Would you like to switch to Flashcard Mode? This disables the camera and lets you practice at your own pace.</p>
+              <div className="flex gap-2">
+                <button className="secondary" style={{ flex: 1 }} onClick={() => setShowPerformanceWarning(false)}>Keep Trying</button>
+                <button style={{ flex: 1 }} onClick={() => { setFlashcardMode(true); setShowPerformanceWarning(false); }}>Enable Flashcards</button>
+              </div>
+           </div>
+        </div>
+      )}
+
       <section className="tracker-layout relative">
          <div style={{ position: "relative" }}>
-           <WebcamCanvas loading={loading} onFrameProcessed={handleFrameProcessed} />
-           {showIntervention && targetItem.correctionUrl && (
-             <InterventionPanel 
-                videoUrl={targetItem.correctionUrl}
-                signName={targetSign}
-                onResume={handleResumeFromIntervention}
-             />
+           <EnvironmentCheckWarning message={envWarning} onDismiss={() => setEnvWarning(null)} />
+           
+           {!flashcardMode ? (
+             <>
+               {privacyAccepted && <WebcamCanvas loading={loading} onFrameProcessed={handleFrameProcessed} />}
+               {showIntervention && targetItem.correctionUrl && (
+                 <InterventionPanel 
+                    videoUrl={targetItem.correctionUrl}
+                    signName={targetSign}
+                    onResume={handleResumeFromIntervention}
+                    errorCode={lastErrorCode}
+                 />
+               )}
+             </>
+           ) : (
+             <div className="card-outer flex items-center justify-center" style={{ minHeight: "600px", background: "var(--color-surface)", flexDirection: "column" }}>
+                <h2 style={{ marginBottom: "var(--space-2)" }}>Flashcard Mode</h2>
+                <p className="text-muted text-sm mb-4">Watch the reference video and try to copy it.</p>
+                {!flashcardMode && <DemoLoop videoUrl={targetItem.demoUrl} signName={targetSign} />}
+             </div>
            )}
          </div>
 
@@ -250,17 +381,25 @@ export default function PracticeRoomPage() {
                  <h3 aria-live="polite" aria-atomic="true" style={{ fontSize: "var(--text-sm)", color: gestureStatus.includes("MATCHED") ? "var(--color-brand)" : "var(--color-text-secondary)" }}>{gestureStatus}</h3>
                </div>
 
-               <DemoLoop videoUrl={targetItem.demoUrl} signName={targetSign} />
+               {!flashcardMode && <DemoLoop videoUrl={targetItem.demoUrl} signName={targetSign} />}
 
                <div className="card-outer">
-                 <p className="text-muted font-semibold text-xs mb-4">ACCURACY</p>
-                 <div style={{ height: "6px", background: "var(--color-overlay)", borderRadius: "var(--radius-full)", marginBottom: "var(--space-3)", overflow: "hidden" }}>
-                    <div style={{ background: "var(--color-brand)", width: `${score}%`, height: "100%", transition: "width 0.2s ease-out" }}></div>
-                 </div>
-                 <div className="flex justify-between text-sm">
-                   <span className="font-semibold">{score}% Matched</span>
-                   <span className="text-muted">Hold Form</span>
-                 </div>
+                 {flashcardMode ? (
+                   <button style={{ padding: "var(--space-4)", fontSize: "var(--text-lg)", background: "var(--color-brand)", color: "#fff", width: "100%", marginBottom: "var(--space-4)" }} onClick={() => setScore(100)}>
+                     I Did It Correctly
+                   </button>
+                 ) : (
+                  <>
+                    <p className="text-muted font-semibold text-xs mb-4">ACCURACY</p>
+                    <div style={{ height: "6px", background: "var(--color-overlay)", borderRadius: "var(--radius-full)", marginBottom: "var(--space-3)", overflow: "hidden" }}>
+                       <div style={{ background: "var(--color-brand)", width: `${score}%`, height: "100%", transition: "width 0.2s ease-out" }}></div>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="font-semibold">{score}% Matched</span>
+                      <span className="text-muted">Hold Form</span>
+                    </div>
+                  </>
+                 )}
                </div>
 
                <div className="card-inner" style={{ marginTop: "auto" }}>

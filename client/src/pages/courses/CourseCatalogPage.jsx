@@ -4,6 +4,7 @@ import { useCourses } from "../../hooks/useCourses";
 import { useUserStore } from "../../store/userStore";
 import { Bot, Flame, ShoppingCart, HeartPulse, Building2, BookOpen, Lock, CheckCircle2, Crown, ArrowLeft } from "lucide-react";
 import { Alert } from "../../components/common/Alert";
+import MembershipModal from "../../components/checkout/MembershipModal";
 
 const getIcon = (iconStr, size = 32) => {
   switch(iconStr) {
@@ -29,6 +30,7 @@ export default function CourseCatalogPage() {
   const [activeCourse, setActiveCourse] = useState(null);
   const [actionProcessing, setActionProcessing] = useState(false);
   const [feedback, setFeedback] = useState(null); // { type: 'success' | 'error' | 'warning', message }
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const isEnrolled = (courseId) => enrollments.some(e => e.course_id === courseId);
 
@@ -46,10 +48,7 @@ export default function CourseCatalogPage() {
 
     // Advanced course and user is free tier
     if (!isFreeCourse(activeCourse) && profile?.membership_status !== 'member') {
-      setFeedback({ 
-        type: "warning", 
-        message: "This is an advanced course that requires an active membership. Upgrade from your Profile page to unlock it." 
-      });
+      setIsModalOpen(true);
       return;
     }
 
@@ -77,6 +76,7 @@ export default function CourseCatalogPage() {
   }
 
   return (
+    <>
     <main className="container animate-fade-in" style={{ paddingTop: "var(--space-20)", paddingBottom: "100px" }}>
         {activeCourse ? (
           <div>
@@ -205,5 +205,7 @@ export default function CourseCatalogPage() {
           </>
         )}
     </main>
+    <MembershipModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+    </>
   );
 }

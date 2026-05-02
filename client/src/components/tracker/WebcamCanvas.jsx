@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useCallback } from "react";
 import Webcam from "react-webcam";
 
 const currentPoints = {
@@ -23,13 +23,7 @@ export default function WebcamCanvas({ loading, onFrameProcessed }) {
 
   // Expose the refs and draw functions so the parent can manage the detection loop
   // without this component holding the business logic.
-  useEffect(() => {
-    if (onFrameProcessed) {
-      onFrameProcessed(webcamRef, canvasRef, drawMesh);
-    }
-  }, [onFrameProcessed]);
-
-  const drawMesh = (handPredictions, posePredictions, ctx) => {
+  const drawMesh = useCallback((handPredictions, posePredictions, ctx) => {
     ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
     
     // 1. Draw Upper Body Pose Mesh
@@ -97,7 +91,13 @@ export default function WebcamCanvas({ loading, onFrameProcessed }) {
         }
       });
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (onFrameProcessed) {
+      onFrameProcessed(webcamRef, canvasRef, drawMesh);
+    }
+  }, [onFrameProcessed, drawMesh]);
 
   return (
     <div className="card-outer" style={{ position: "relative", minHeight: "600px", padding: 0, overflow: "hidden", borderRadius: "var(--radius-xl)" }}>
@@ -112,6 +112,7 @@ export default function WebcamCanvas({ loading, onFrameProcessed }) {
 
       <Webcam
         ref={webcamRef}
+        videoConstraints={{ width: 480, height: 360, facingMode: "user" }}
         style={{
           position: "absolute",
           left: 0,

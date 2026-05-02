@@ -1,13 +1,42 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { API } from '../api';
 
+const batchQueue = [];
+let isFlushing = false;
+
 export function useAnalytics() {
-  const trackEvent = useCallback(async (eventType, metadata = {}) => {
-    try {
-      await API.post('/api/admin/track', { event_type: eventType, metadata });
-    } catch (err) {
-      console.warn("Analytics tracking failed:", err);
-    }
+  const trackEvent = useCallback((eventType, metadata = {}) => {
+    batchQueue.push({ event_type: eventType, metadata, timestamp: new Date().toISOString() });
+  }, []);
+
+  useEffect(() => {
+    const flushQueue = async () => {
+      if (batchQueue.length === 0 || isFlushing) return;
+      isFlushing = true;
+      const eventsToFlush = [...batchQueue];
+      batchQueue.length = 0; // clear queue
+
+      try {
+        await API.post('/api/admin/track/batch', { events: eventsToFlush });
+      } catch (err) {
+        console.warn("Analytics batch tracking failed:", err);
+        // Put them back if failed so we don't lose data
+        batchQueue.unshift(...eventsToFlush);
+      } finally {
+        isFlushing = false;
+      }
+    };
+
+    const interval = setInterval(flushQueue, 30000); // 30 seconds
+
+    return () => {
+      clearInterval(interval);
+      if (batchQueue.length > 0) {
+        // flush remaining on unmount (best effort, using fetch to avoid hanging)
+        API.post('/api/admin/track/batch', { events: batchQueue }).catch(() => {});
+        batchQueue.length = 0;
+      }
+    };
   }, []);
 
   return { trackEvent };

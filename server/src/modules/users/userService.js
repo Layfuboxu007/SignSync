@@ -20,6 +20,10 @@ exports.syncUser = async (userData) => {
     ? userData.role
     : "learner";
 
+  // Check if user already exists
+  const { data: existing } = await supabase.from("users").select("id").eq("email", userData.email).maybeSingle();
+  if (existing) return true;
+
   const { error } = await supabase.from("users").insert({
     first_name: userData.firstName,
     last_name: userData.lastName,

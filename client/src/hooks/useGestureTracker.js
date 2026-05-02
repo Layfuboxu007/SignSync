@@ -1,41 +1,27 @@
 import { useState, useEffect, useRef } from "react";
-import * as tf from "@tensorflow/tfjs";
-import * as handpose from "@tensorflow-models/handpose";
-import * as poseDetection from "@tensorflow-models/pose-detection";
+import PoseWorker from "../workers/poseWorker.js?worker";
 
 export function useGestureTracker() {
-  const [model, setModel] = useState(null);
-  const [poseModel, setPoseModel] = useState(null);
   const [loading, setLoading] = useState(true);
+  const workerRef = useRef(null);
 
   useEffect(() => {
-    let isMounted = true;
-    const loadModels = async () => {
-      try {
-        await tf.setBackend('webgl');
-        await tf.ready();
-        
-        const handNet = await handpose.load();
-        const detectorConfig = { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING };
-        const poseNet = await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet, detectorConfig);
+    const worker = new PoseWorker();
+    workerRef.current = worker;
 
-        if (isMounted) {
-          setModel(handNet);
-          setPoseModel(poseNet);
-          setLoading(false);
-          console.log("TFJS Models loaded successfully");
-        }
-      } catch (err) {
-        console.error("Failed to load TFJS models", err);
+    worker.onmessage = (e) => {
+      if (e.data.type === 'MODELS_LOADED') {
+        setLoading(false);
+        console.log("TFJS Models loaded in Web Worker");
       }
     };
-    
-    loadModels();
-    
+
+    worker.postMessage({ type: 'INIT' });
+
     return () => {
-      isMounted = false;
+      worker.terminate();
     };
   }, []);
 
-  return { model, poseModel, loading };
+  return { workerRef, loading };
 }

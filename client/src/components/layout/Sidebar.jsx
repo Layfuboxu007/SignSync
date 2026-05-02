@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useUserStore } from "../../store/userStore";
+import MembershipModal from "../checkout/MembershipModal";
 import { LayoutDashboard, GraduationCap, Users, UserCircle, LogOut, ShieldCheck } from "lucide-react";
 
 const studentLinks = [
@@ -16,7 +18,8 @@ const instructorLinks = [
 export default function Sidebar({ isInstructor, isOpen, onClose }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { profile, logout, upgradeMembership } = useUserStore();
+  const { profile, logout } = useUserStore();
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const links = isInstructor ? instructorLinks : studentLinks;
 
@@ -54,7 +57,7 @@ export default function Sidebar({ isInstructor, isOpen, onClose }) {
               <p style={{ fontSize: "var(--text-xs)", fontWeight: "700", color: "var(--color-text-secondary)", marginBottom: "var(--space-2)" }}>FREE TIER</p>
               <p style={{ fontSize: "var(--text-xs)", marginBottom: "var(--space-4)", color: "var(--color-text-primary)" }}>Become a member to unlock all courses.</p>
               <button
-                onClick={() => upgradeMembership()}
+                onClick={() => setIsModalOpen(true)}
                 style={{ fontSize: "var(--text-xs)", padding: "var(--space-2) var(--space-4)", width: "100%" }}
               >
                 Activate Membership
@@ -75,6 +78,8 @@ export default function Sidebar({ isInstructor, isOpen, onClose }) {
           </button>
         </div>
       </aside>
+
+      <MembershipModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </>
   );
 }

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { supabase, API } from '../api';
 
-export const useUserStore = create((set, get) => ({
+export const useUserStore = create((set) => ({
   session: null,
   profile: null,
   loading: true,

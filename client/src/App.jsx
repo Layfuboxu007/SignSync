@@ -23,7 +23,7 @@ import InstructorDashboard from "./features/dashboard/InstructorDashboard";
 import PracticeRoomPage from "./pages/practice/PracticeRoomPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import UserManagement from "./pages/admin/UserManagement";
-import ActivityLogs from "./pages/admin/ActivityLogs";
+import Reports from "./pages/admin/Reports";
 import AdminProfile from "./pages/admin/AdminProfile";
 
 function App() {
@@ -74,7 +74,7 @@ function App() {
           <Route element={<AdminLayout />}>
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/users" element={<UserManagement />} />
-            <Route path="/admin/logs" element={<ActivityLogs />} />
+            <Route path="/admin/logs" element={<Reports />} />
             <Route path="/admin/profile" element={<AdminProfile />} />
           </Route>
         </Route>

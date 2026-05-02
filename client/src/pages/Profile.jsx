@@ -5,6 +5,7 @@ import { useUserStore } from "../store/userStore";
 import { User, Mail, Shield, ShieldCheck, ShieldAlert, Crown, Settings } from "lucide-react";
 import { Alert } from "../components/common/Alert";
 import { FormField } from "../components/common/FormField";
+import MembershipModal from "../components/checkout/MembershipModal";
 
 function Profile() {
   const [email, setEmail] = useState("");
@@ -26,7 +27,7 @@ function Profile() {
     ? `${profile.first_name[0]}${(profile.last_name || "")[0] || ""}`.toUpperCase()
     : (profile?.username || "U")[0].toUpperCase();
 
-  const [membershipLoading, setMembershipLoading] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -39,25 +40,6 @@ function Profile() {
     };
     fetchUser();
   }, []);
-
-  const handleUpgradeMembership = async () => {
-    setMembershipLoading(true);
-    setErrorMsg("");
-    setSuccessMsg("");
-    try {
-      const success = await useUserStore.getState().upgradeMembership();
-      if (success) {
-        setSuccessMsg("Membership activated successfully! You can now access all courses.");
-        setTimeout(() => setSuccessMsg(""), 4000);
-      } else {
-        setErrorMsg("Failed to activate membership. Please try again.");
-      }
-    } catch (err) {
-      setErrorMsg("An error occurred while upgrading membership.");
-    } finally {
-      setMembershipLoading(false);
-    }
-  };
 
   const handleUpdate = async (e) => {
     e.preventDefault();
@@ -151,11 +133,11 @@ function Profile() {
             <p className="text-muted text-sm">Unlock unlimited access to all courses and premium curriculum.</p>
           </div>
           <button 
-            onClick={handleUpgradeMembership} 
-            disabled={membershipLoading}
+            type="button"
+            onClick={() => setIsModalOpen(true)} 
             style={{ width: "auto", flexShrink: 0 }}
           >
-            {membershipLoading ? "Activating..." : "Activate"}
+            Upgrade Now
           </button>
         </div>
       )}
@@ -206,6 +188,8 @@ function Profile() {
           </button>
         </div>
       )}
+      
+      <MembershipModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>
   );
 }
