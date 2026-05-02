@@ -1,59 +1,83 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Users, Activity, BarChart2, AlertCircle } from "lucide-react";
-import { API } from "../../api";
+import { useAdmin } from "../../hooks/useAdmin";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   LineChart, Line, CartesianGrid, Cell
 } from "recharts";
 
+// Custom Light Mode Tooltip for Recharts
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div style={{
+        background: "rgba(255, 255, 255, 0.95)",
+        backdropFilter: "blur(8px)",
+        border: "1px solid #e2e8f0",
+        padding: "12px",
+        borderRadius: "8px",
+        color: "#0f172a",
+        fontFamily: "'Fira Code', monospace",
+        fontSize: "12px",
+        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)"
+      }}>
+        <p style={{ color: "#64748b", marginBottom: "4px" }}>{label}</p>
+        {payload.map((entry, index) => (
+          <p key={`item-${index}`} style={{ color: entry.color, fontWeight: "600" }}>
+            {entry.name}: {entry.value}
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
+
+const cardStyle = {
+  background: "#ffffff",
+  border: "1px solid #e2e8f0",
+  borderRadius: "16px",
+  padding: "24px",
+  boxShadow: "0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)",
+  transition: "transform 200ms ease, box-shadow 200ms ease",
+  cursor: "pointer"
+};
+
+const hoverIn = (e) => {
+  e.currentTarget.style.transform = "translateY(-2px)";
+  e.currentTarget.style.boxShadow = "0 10px 15px -3px rgba(0,0,0,0.1)";
+};
+const hoverOut = (e) => {
+  e.currentTarget.style.transform = "translateY(0)";
+  e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)";
+};
+
+function KpiCard({ icon: Icon, label, value, bgColor, iconColor, gridSpan = 4 }) {
+  return (
+    <div
+      style={{ ...cardStyle, gridColumn: `span ${gridSpan}` }}
+      onMouseOver={hoverIn}
+      onMouseOut={hoverOut}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+        <div style={{ background: bgColor, color: iconColor, padding: "16px", borderRadius: "12px" }}>
+          <Icon size={28} />
+        </div>
+        <div>
+          <p style={{ color: "#64748b", fontSize: "12px", fontWeight: "600", letterSpacing: "0.05em", marginBottom: "4px" }}>{label}</p>
+          <h2 style={{ fontSize: "32px", color: "#0f172a", fontFamily: "'Fira Code', monospace", fontWeight: "700", lineHeight: 1 }}>{value}</h2>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
-  const [metrics, setMetrics] = useState(null);
-  const [engagement, setEngagement] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [filterType, setFilterType] = useState("7"); // '7', '30', '90', 'custom'
-  const [startDate, setStartDate] = useState(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
-  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const [filterType, setFilterType] = React.useState("7"); // '7', '30', '90', 'custom'
+  const [startDate, setStartDate] = React.useState(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+  const [endDate, setEndDate] = React.useState(new Date().toISOString().split('T')[0]);
 
-  useEffect(() => {
-    const fetchAdminData = async () => {
-      setLoading(true);
-      try {
-        let urlOverview = `/api/admin/metrics/overview?days=${filterType !== 'custom' ? filterType : 0}`;
-        let urlEngagement = `/api/admin/metrics/engagement?days=${filterType !== 'custom' ? filterType : 0}`;
-        
-        if (filterType === 'custom') {
-           urlOverview += `&startDate=${startDate}&endDate=${endDate}`;
-           urlEngagement += `&startDate=${startDate}&endDate=${endDate}`;
-        }
-        
-        const [overviewRes, engagementRes] = await Promise.all([
-          API.get(urlOverview),
-          API.get(urlEngagement)
-        ]);
-
-        const rawMetrics = overviewRes.data.recentMetrics || [];
-        const formattedMetrics = rawMetrics.reverse().map(m => ({
-          name: new Date(m.report_date).toLocaleDateString('en-US', { weekday: 'short' }),
-          ActiveUsers: m.daily_active_users,
-          Failures: m.total_tracker_failures
-        }));
-
-        setMetrics({
-          totalUsers: overviewRes.data.totalUsers,
-          chartData: formattedMetrics
-        });
-
-        setEngagement(engagementRes.data.difficultModules);
-      } catch (err) {
-        setError(err.response?.data?.error || err.message || "Failed to load admin data");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAdminData();
-  }, [filterType, startDate, endDate]);
+  const { metrics, engagement, loading, error, currentActive, currentFailures } = useAdmin(filterType, startDate, endDate);
 
   if (loading) return (
     <div style={{ padding: "40px", textAlign: "center", color: "#64748b", fontFamily: "'Fira Code', monospace" }}>
@@ -64,36 +88,6 @@ export default function AdminDashboard() {
     </div>
   );
   if (error) return <div style={{ padding: "40px", textAlign: "center", color: "#ef4444" }}>Error: {error}</div>;
-
-  const currentActive = metrics.chartData.length > 0 ? metrics.chartData[metrics.chartData.length - 1].ActiveUsers : 0;
-  const currentFailures = metrics.chartData.length > 0 ? metrics.chartData[metrics.chartData.length - 1].Failures : 0;
-
-  // Custom Light Mode Tooltip for Recharts
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div style={{
-          background: "rgba(255, 255, 255, 0.95)",
-          backdropFilter: "blur(8px)",
-          border: "1px solid #e2e8f0",
-          padding: "12px",
-          borderRadius: "8px",
-          color: "#0f172a",
-          fontFamily: "'Fira Code', monospace",
-          fontSize: "12px",
-          boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)"
-        }}>
-          <p style={{ color: "#64748b", marginBottom: "4px" }}>{label}</p>
-          {payload.map((entry, index) => (
-            <p key={`item-${index}`} style={{ color: entry.color, fontWeight: "600" }}>
-              {entry.name}: {entry.value}
-            </p>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  };
 
   const getDynamicInsights = () => {
     if (!metrics || !metrics.chartData || metrics.chartData.length === 0) {
@@ -113,17 +107,6 @@ export default function AdminDashboard() {
     const daysLabel = filterType === 'custom' ? `the selected period` : `the last ${filterType} days`;
     return `Over ${daysLabel}, active user sessions have ${userTrend}. The most challenging module currently is "${hardestModule}". Consider adding supplementary video tutorials or slowing down the tracking requirement for this module to reduce failure rates.`;
   };
-
-  const cardStyle = {
-    background: "#ffffff",
-    border: "1px solid #e2e8f0",
-    borderRadius: "16px",
-    padding: "24px",
-    boxShadow: "0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)",
-    transition: "transform 200ms ease, box-shadow 200ms ease",
-    cursor: "pointer"
-  };
-
   return (
     <div className="animate-fade-in" style={{ maxWidth: "1400px", margin: "0 auto" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "32px" }}>
@@ -173,78 +156,11 @@ export default function AdminDashboard() {
       </div>
 
       {/* Bento Grid layout */}
-      <div style={{ 
-        display: "grid", 
-        gridTemplateColumns: "repeat(12, 1fr)", 
-        gap: "24px", 
-        marginBottom: "24px" 
-      }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(12, 1fr)", gap: "24px", marginBottom: "24px" }}>
         
-        {/* KPI: Total Users */}
-        <div 
-          style={{ ...cardStyle, gridColumn: "span 4" }}
-          onMouseOver={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 10px 15px -3px rgba(0,0,0,0.1)"; }}
-          onMouseOut={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)"; }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-            <div style={{ 
-              background: "#eff6ff", 
-              color: "#2563eb", 
-              padding: "16px", 
-              borderRadius: "12px",
-            }}>
-              <Users size={28} />
-            </div>
-            <div>
-              <p style={{ color: "#64748b", fontSize: "12px", fontWeight: "600", letterSpacing: "0.05em", marginBottom: "4px" }}>TOTAL USERS</p>
-              <h2 style={{ fontSize: "32px", color: "#0f172a", fontFamily: "'Fira Code', monospace", fontWeight: "700", lineHeight: 1 }}>{metrics.totalUsers}</h2>
-            </div>
-          </div>
-        </div>
-        
-        {/* KPI: Active Sessions */}
-        <div 
-          style={{ ...cardStyle, gridColumn: "span 4" }}
-          onMouseOver={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 10px 15px -3px rgba(0,0,0,0.1)"; }}
-          onMouseOut={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)"; }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-            <div style={{ 
-              background: "#ecfdf5", 
-              color: "#10b981", 
-              padding: "16px", 
-              borderRadius: "12px",
-            }}>
-              <Activity size={28} />
-            </div>
-            <div>
-              <p style={{ color: "#64748b", fontSize: "12px", fontWeight: "600", letterSpacing: "0.05em", marginBottom: "4px" }}>ACTIVE SESSIONS</p>
-              <h2 style={{ fontSize: "32px", color: "#0f172a", fontFamily: "'Fira Code', monospace", fontWeight: "700", lineHeight: 1 }}>{currentActive}</h2>
-            </div>
-          </div>
-        </div>
-
-        {/* KPI: Tracker Failures */}
-        <div 
-          style={{ ...cardStyle, gridColumn: "span 4" }}
-          onMouseOver={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 10px 15px -3px rgba(0,0,0,0.1)"; }}
-          onMouseOut={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)"; }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-            <div style={{ 
-              background: "#fffbeb", 
-              color: "#d97706", 
-              padding: "16px", 
-              borderRadius: "12px",
-            }}>
-              <AlertCircle size={28} />
-            </div>
-            <div>
-              <p style={{ color: "#64748b", fontSize: "12px", fontWeight: "600", letterSpacing: "0.05em", marginBottom: "4px" }}>TRACKER FAILURES</p>
-              <h2 style={{ fontSize: "32px", color: "#0f172a", fontFamily: "'Fira Code', monospace", fontWeight: "700", lineHeight: 1 }}>{currentFailures}</h2>
-            </div>
-          </div>
-        </div>
+        <KpiCard icon={Users} label="TOTAL USERS" value={metrics.totalUsers} bgColor="#eff6ff" iconColor="#2563eb" />
+        <KpiCard icon={Activity} label="ACTIVE SESSIONS" value={currentActive} bgColor="#ecfdf5" iconColor="#10b981" />
+        <KpiCard icon={AlertCircle} label="TRACKER FAILURES" value={currentFailures} bgColor="#fffbeb" iconColor="#d97706" />
 
         {/* Dynamic AI Insights */}
         <div style={{ ...cardStyle, gridColumn: "span 12", background: "var(--color-brand-light)", borderColor: "var(--color-brand-dark)" }}>

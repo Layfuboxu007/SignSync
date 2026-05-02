@@ -17,7 +17,7 @@ export function useAnalytics() {
       batchQueue.length = 0; // clear queue
 
       try {
-        await API.post('/api/admin/track/batch', { events: eventsToFlush });
+        await API.post('/admin/track/batch', { events: eventsToFlush });
       } catch (err) {
         console.warn("Analytics batch tracking failed:", err);
         // Put them back if failed so we don't lose data
@@ -33,7 +33,7 @@ export function useAnalytics() {
       clearInterval(interval);
       if (batchQueue.length > 0) {
         // flush remaining on unmount (best effort, using fetch to avoid hanging)
-        API.post('/api/admin/track/batch', { events: batchQueue }).catch(() => {});
+        API.post('/admin/track/batch', { events: batchQueue }).catch(() => {});
         batchQueue.length = 0;
       }
     };

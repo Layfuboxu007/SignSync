@@ -9,7 +9,7 @@ export default function UserManagement() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const res = await API.get("/api/admin/users?limit=50");
+        const res = await API.get("/admin/users?limit=50");
         setUsers(res.data.users);
       } catch (err) {
         console.error("Failed to fetch users", err);

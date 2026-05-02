@@ -20,7 +20,7 @@ function ForgotPassword() {
       
       if (!targetEmail.includes('@')) {
          try {
-           const res = await API.post("/lookup-email", { username: email });
+           const res = await API.post("/users/lookup-email", { username: email });
            targetEmail = res.data.email;
          } catch {
            throw new Error("Username not found");
