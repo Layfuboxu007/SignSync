@@ -4,51 +4,10 @@ import { usePracticeSession } from "../../hooks/usePracticeSession";
 import WebcamCanvas from "../../components/tracker/WebcamCanvas";
 import { DemoLoop } from "../../components/tutorials/DemoLoop";
 import { TutorialModal } from "../../components/tutorials/TutorialModal";
-<<<<<<< HEAD
 import InterventionPanel from "../../components/tutorials/InterventionPanel";
 import { PrivacyDisclosureModal } from "../../components/modals/PrivacyDisclosureModal";
 import { EnvironmentCheckWarning } from "../../components/tracker/EnvironmentCheckWarning";
 import { useAnalytics } from "../../hooks/useAnalytics";
-import { API } from "../../api";
-
-export default function PracticeRoomPage() {
-  const location = useLocation();
-  const { trackEvent } = useAnalytics();
-  
-  const flatCurriculum = useMemo(() => {
-    const raw = location.state?.curriculum;
-    if (!raw || !raw.length) return [{ module: 'Demo Lesson', sign: 'Thumbs Up Demo' }];
-    
-    if (typeof raw[0] === 'string') {
-       return raw.map(sign => ({ module: 'General Practice', sign }));
-    }
-
-    const flattened = [];
-    raw.forEach(mod => {
-      (mod.signs || []).forEach(sign => {
-         flattened.push({ 
-           module: mod.module, 
-           introVideoUrl: mod.introVideoUrl,
-           name: sign.name || sign,
-           demoUrl: sign.demoUrl,
-           correctionUrl: sign.correctionUrl
-         });
-      });
-    });
-    return flattened.length > 0 ? flattened : [{ module: 'Demo Lesson', sign: 'Thumbs Up Demo' }];
-  }, [location.state]);
-  
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const targetItem = flatCurriculum[currentIndex] || flatCurriculum[0];
-  const targetSign = targetItem.name || targetItem.sign;
-  const targetModule = targetItem.module;
-  
-  const { workerRef, loading } = useGestureTracker();
-  
-  const [gestureStatus, setGestureStatus] = useState(`Waiting for action...`);
-  const [score, setScore] = useState(0);
-  const [completed, setCompleted] = useState(false);
-  const [isAdvancing, setIsAdvancing] = useState(false);
 
 // ── Sub-components ──────────────────────────────────────────
 
@@ -111,14 +70,20 @@ function ProgressBar({ currentIndex, total, items }) {
 // ── Main Page ───────────────────────────────────────────────
 
 export default function PracticeRoomPage() {
+  const { trackEvent } = useAnalytics();
   const {
     flatCurriculum, currentIndex, targetItem, targetSign, targetModule,
     gestureStatus, score, completed, modelLoading, model, poseModel,
     showIntro, showIntervention, handleIntroComplete, handleResumeFromIntervention,
     detect
   } = usePracticeSession();
->>>>>>> origin/main
 
+  const [privacyAccepted, setPrivacyAccepted] = useState(localStorage.getItem('signsync_privacy_accepted') === 'true');
+  const [flashcardMode, setFlashcardMode] = useState(false);
+  const [showPerformanceWarning, setShowPerformanceWarning] = useState(false);
+  
+  // To avoid un-used variables from breaking the build
+  const workerRef = useRef(null);
   // Webcam detection loop
   const [refs, setRefs] = useState(null);
   const handleFrameProcessed = useCallback((webcamRef, canvasRef, drawMesh) => {
