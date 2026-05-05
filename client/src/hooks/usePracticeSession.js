@@ -45,6 +45,7 @@ export function usePracticeSession() {
   const [showIntro, setShowIntro] = useState(false);
   const [showIntervention, setShowIntervention] = useState(false);
   const failureCountRef = useRef(0);
+  const temporalBufferRef = useRef(0);
 
   // Derived values
   const targetItem = flatCurriculum[currentIndex] || flatCurriculum[0];
@@ -142,15 +143,27 @@ export function usePracticeSession() {
         poseModel.estimatePoses(video)
       ]);
 
-      if (hand.length > 0 || poses.length > 0) {
-        drawMesh(hand, poses, canvasRef.current.getContext("2d"));
-        if (hand.length > 0 && !completed && !isAdvancing) {
-          const isMatch = evaluateGestureMatch(hand[0].landmarks, targetSign);
+      const validHandDetected = hand.length > 0 && (hand[0].score >= 0.8 || hand[0].score === undefined); // Fallback for undefined score
+
+      if (validHandDetected || poses.length > 0) {
+        let isMatch = false;
+
+        if (validHandDetected && !completed && !isAdvancing) {
+          const matchResult = evaluateGestureMatch(hand[0].landmarks, targetSign);
+          isMatch = matchResult.isMatch;
+
           if (isMatch) {
-            setGestureStatus(`MATCHED: '${targetSign}'`);
-            setScore(prev => Math.min(prev + 10, 100));
-            failureCountRef.current = Math.max(0, failureCountRef.current - 0.5);
+            temporalBufferRef.current += 1;
+            if (temporalBufferRef.current >= 5) {
+              setGestureStatus(`MATCHED: '${targetSign}'`);
+              setScore(prev => Math.min(prev + 10, 100));
+              failureCountRef.current = Math.max(0, failureCountRef.current - 0.5);
+              temporalBufferRef.current = 0; // Require re-hold for next points
+            } else {
+              setGestureStatus(`Hold steady... (${temporalBufferRef.current}/5)`);
+            }
           } else {
+             temporalBufferRef.current = 0;
              setGestureStatus(`Tracking active... Make sign: '${targetSign}'`);
              failureCountRef.current += 1;
              
@@ -160,9 +173,16 @@ export function usePracticeSession() {
                failureCountRef.current = -50;
              }
           }
+        } else if (!validHandDetected) {
+            temporalBufferRef.current = 0;
         }
+
+        const handToDraw = validHandDetected ? hand : [];
+        drawMesh(handToDraw, poses, canvasRef.current.getContext("2d"), isMatch);
       } else {
+        temporalBufferRef.current = 0;
         if (!isAdvancing) setGestureStatus(`Tracking active... Make sign: '${targetSign}'`);
+        drawMesh([], [], canvasRef.current.getContext("2d"), false);
       }
     }
   }, [model, poseModel, completed, isAdvancing, targetSign, showIntro, showIntervention, targetItem.correctionUrl, trackEvent, targetModule]);

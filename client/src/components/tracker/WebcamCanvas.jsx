@@ -23,7 +23,7 @@ export default function WebcamCanvas({ loading, onFrameProcessed }) {
 
   // Expose the refs and draw functions so the parent can manage the detection loop
   // without this component holding the business logic.
-  const drawMesh = useCallback((handPredictions, posePredictions, ctx) => {
+  const drawMesh = useCallback((handPredictions, posePredictions, ctx, isValidMatch = false) => {
     ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
     
     // 1. Draw Upper Body Pose Mesh
@@ -73,7 +73,7 @@ export default function WebcamCanvas({ loading, onFrameProcessed }) {
             ctx.beginPath();
             ctx.moveTo(landmarks[firstJointIndex][0], landmarks[firstJointIndex][1]);
             ctx.lineTo(landmarks[secondJointIndex][0], landmarks[secondJointIndex][1]);
-            ctx.strokeStyle = "#10b981"; // Teal accent
+            ctx.strokeStyle = isValidMatch ? "#10b981" : "#ef4444"; // Green if valid, Red if invalid
             ctx.lineWidth = 4;
             ctx.stroke();
           }
@@ -86,7 +86,7 @@ export default function WebcamCanvas({ loading, onFrameProcessed }) {
           ctx.arc(x, y, 6, 0, 3 * Math.PI);
           ctx.fillStyle = "#fff";
           ctx.fill();
-          ctx.strokeStyle = "#10b981";
+          ctx.strokeStyle = isValidMatch ? "#10b981" : "#ef4444";
           ctx.stroke();
         }
       });

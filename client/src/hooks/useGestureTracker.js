@@ -30,7 +30,10 @@ export function useGestureTracker() {
           handsInstance.estimateHands = (video) => {
             return new Promise(async (resolve) => {
               handsInstance.onResults((results) => {
-                const formatted = results.multiHandLandmarks ? results.multiHandLandmarks.map(lm => ({ landmarks: lm })) : [];
+                const formatted = results.multiHandLandmarks ? results.multiHandLandmarks.map((lm, idx) => ({ 
+                  landmarks: lm,
+                  score: results.multiHandedness && results.multiHandedness[idx] ? results.multiHandedness[idx].score : 0
+                })) : [];
                 resolve(formatted);
               });
               await handsInstance.send({ image: video });
