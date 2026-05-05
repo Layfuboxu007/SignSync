@@ -23,8 +23,8 @@ export function useGestureTracker() {
           handsInstance.setOptions({
             maxNumHands: 2,
             modelComplexity: 1,
-            minDetectionConfidence: 0.5,
-            minTrackingConfidence: 0.5
+            minDetectionConfidence: 0.7,
+            minTrackingConfidence: 0.7
           });
           // Adapter to match TFJS API signature for usePracticeSession.js
           handsInstance.estimateHands = (video) => {
@@ -32,7 +32,7 @@ export function useGestureTracker() {
               handsInstance.onResults((results) => {
                 const formatted = results.multiHandLandmarks ? results.multiHandLandmarks.map((lm, idx) => ({ 
                   landmarks: lm,
-                  score: results.multiHandedness && results.multiHandedness[idx] ? results.multiHandedness[idx].score : 0
+                  score: results.multiHandedness && results.multiHandedness[idx] ? results.multiHandedness[idx].score : undefined
                 })) : [];
                 resolve(formatted);
               });

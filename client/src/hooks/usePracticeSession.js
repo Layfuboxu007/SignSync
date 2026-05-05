@@ -143,7 +143,8 @@ export function usePracticeSession() {
         poseModel.estimatePoses(video)
       ]);
 
-      const validHandDetected = hand.length > 0 && (hand[0].score >= 0.8 || hand[0].score === undefined); // Fallback for undefined score
+      // Let MediaPipe handle the strict confidence tracking natively
+      const validHandDetected = hand.length > 0 && (hand[0].score >= 0.5 || hand[0].score === undefined);
 
       if (validHandDetected || poses.length > 0) {
         let isMatch = false;
@@ -154,16 +155,17 @@ export function usePracticeSession() {
 
           if (isMatch) {
             temporalBufferRef.current += 1;
-            if (temporalBufferRef.current >= 5) {
+            if (temporalBufferRef.current >= 3) {
               setGestureStatus(`MATCHED: '${targetSign}'`);
               setScore(prev => Math.min(prev + 10, 100));
               failureCountRef.current = Math.max(0, failureCountRef.current - 0.5);
               temporalBufferRef.current = 0; // Require re-hold for next points
             } else {
-              setGestureStatus(`Hold steady... (${temporalBufferRef.current}/5)`);
+              setGestureStatus(`Hold steady... (${temporalBufferRef.current}/3)`);
             }
           } else {
-             temporalBufferRef.current = 0;
+             // Slowly decay the buffer instead of an immediate harsh reset
+             temporalBufferRef.current = Math.max(0, temporalBufferRef.current - 1);
              setGestureStatus(`Tracking active... Make sign: '${targetSign}'`);
              failureCountRef.current += 1;
              
