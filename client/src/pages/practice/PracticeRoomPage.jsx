@@ -95,31 +95,31 @@ export default function PracticeRoomPage() {
     savedDetect.current = detect;
   });
 
-  // Listener for worker messages
-  useEffect(() => {
-    if (!workerRef.current) return;
-    const worker = workerRef.current;
-    
-    const handleMessage = (e) => {
-      if (e.data.type === 'FRAME_RESULT') {
-        const { hand, poses } = e.data.payload;
-        if (refs) processFrameResult(hand, poses, refs);
-      }
-    };
-    
-    worker.addEventListener('message', handleMessage);
-    return () => worker.removeEventListener('message', handleMessage);
-  }, [workerRef, refs, processFrameResult]);
+  const lastFrameTimeRef = useRef(null);
+  const lowFpsStartTimeRef = useRef(null);
 
   useEffect(() => {
     let interval;
-    if (refs && workerRef.current && !flashcardMode) {
-      interval = setInterval(() => {
-        savedDetect.current(refs.webcamRef, refs.canvasRef, refs.drawMesh);
+    if (refs && !flashcardMode) {
+      interval = setInterval(async () => {
+        const start = Date.now();
+        await savedDetect.current(refs.webcamRef, refs.canvasRef, refs.drawMesh);
+        const frameTime = Date.now() - start;
+
+        // Performance Check
+        if (frameTime > 150) {
+          if (!lowFpsStartTimeRef.current) lowFpsStartTimeRef.current = Date.now();
+          else if (Date.now() - lowFpsStartTimeRef.current > 5000 && !showPerformanceWarning) {
+            setShowPerformanceWarning(true);
+            trackEvent('performance_degraded');
+          }
+        } else {
+          lowFpsStartTimeRef.current = null;
+        }
       }, 100); 
     }
     return () => clearInterval(interval);
-  }, [refs, workerRef]);
+  }, [refs, flashcardMode, showPerformanceWarning, trackEvent]);
 
   return (
     <div className="container relative" style={{ padding: "var(--space-6) var(--space-5)", maxWidth: "1200px", margin: "0 auto", position: "relative" }}>
