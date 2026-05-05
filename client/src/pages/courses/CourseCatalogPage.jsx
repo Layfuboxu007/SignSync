@@ -42,7 +42,20 @@ export default function CourseCatalogPage() {
     
     // Already enrolled — go practice
     if (isEnrolled(activeCourse.id)) {
-      navigate("/practice", { state: { curriculum: activeCourse.gestures || ['Thumbs Up Demo'] } });
+      const enrollmentData = enrollments.find(e => e.course_id === activeCourse.id);
+      const completedCount = enrollmentData?.completedModules || 0;
+      
+      const rawCurriculum = activeCourse.gestures || ['Thumbs Up Demo'];
+      const remainingCurriculum = completedCount < rawCurriculum.length 
+        ? rawCurriculum.slice(completedCount) 
+        : rawCurriculum;
+
+      navigate("/practice", { 
+        state: { 
+          curriculum: remainingCurriculum,
+          courseId: activeCourse.id
+        } 
+      });
       return;
     }
 
