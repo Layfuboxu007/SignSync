@@ -1,27 +1,87 @@
-import { useState, useEffect, useRef } from "react";
-import PoseWorker from "../workers/poseWorker.js?worker";
+import { useState, useEffect } from "react";
 
 export function useGestureTracker() {
   const [loading, setLoading] = useState(true);
-  const workerRef = useRef(null);
+  const [model, setModel] = useState(null);
+  const [poseModel, setPoseModel] = useState(null);
 
   useEffect(() => {
-    const worker = new PoseWorker();
-    workerRef.current = worker;
+    let handsInstance = null;
+    let poseInstance = null;
 
-    worker.onmessage = (e) => {
-      if (e.data.type === 'MODELS_LOADED') {
+    const initModels = async () => {
+      try {
+        if (!window.Hands || !window.Pose) {
+          // Wait for CDNs to load if they haven't yet
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+
+        if (window.Hands) {
+          handsInstance = new window.Hands({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+          });
+          handsInstance.setOptions({
+            maxNumHands: 2,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+          });
+          // Adapter to match TFJS API signature for usePracticeSession.js
+          handsInstance.estimateHands = (video) => {
+            return new Promise(async (resolve) => {
+              handsInstance.onResults((results) => {
+                const formatted = results.multiHandLandmarks ? results.multiHandLandmarks.map(lm => ({ landmarks: lm })) : [];
+                resolve(formatted);
+              });
+              await handsInstance.send({ image: video });
+            });
+          };
+
+          // Dummy initialization to trigger loading
+          await handsInstance.initialize();
+          setModel(handsInstance);
+        }
+
+        if (window.Pose) {
+          poseInstance = new window.Pose({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+          });
+          poseInstance.setOptions({
+            modelComplexity: 1,
+            smoothLandmarks: true,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+          });
+          // Adapter to match TFJS API signature
+          poseInstance.estimatePoses = (video) => {
+            return new Promise(async (resolve) => {
+              poseInstance.onResults((results) => {
+                const formatted = results.poseLandmarks ? [{ keypoints: results.poseLandmarks }] : [];
+                resolve(formatted);
+              });
+              await poseInstance.send({ image: video });
+            });
+          };
+
+          await poseInstance.initialize();
+          setPoseModel(poseInstance);
+        }
+        
+        console.log("MediaPipe Native Models Loaded Successfully!");
         setLoading(false);
-        console.log("TFJS Models loaded in Web Worker");
+      } catch (err) {
+        console.error("Failed to load native MediaPipe models", err);
+        setLoading(false);
       }
     };
 
-    worker.postMessage({ type: 'INIT' });
+    initModels();
 
     return () => {
-      worker.terminate();
+      if (handsInstance) handsInstance.close();
+      if (poseInstance) poseInstance.close();
     };
   }, []);
 
-  return { workerRef, loading };
+  return { model, poseModel, loading };
 }
