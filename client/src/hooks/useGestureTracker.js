@@ -27,11 +27,15 @@ export function useGestureTracker() {
             minTrackingConfidence: 0.7
           });
           // Adapter to match TFJS API signature for usePracticeSession.js
+          // Native MediaPipe returns normalized {x,y,z} objects (0-1 range).
+          // gestureMath.js and WebcamCanvas.jsx expect pixel-scaled [x,y,z] arrays.
           handsInstance.estimateHands = (video) => {
             return new Promise(async (resolve) => {
               handsInstance.onResults((results) => {
-                const formatted = results.multiHandLandmarks ? results.multiHandLandmarks.map((lm, idx) => ({ 
-                  landmarks: lm,
+                const w = video.videoWidth || 640;
+                const h = video.videoHeight || 480;
+                const formatted = results.multiHandLandmarks ? results.multiHandLandmarks.map((lm, idx) => ({
+                  landmarks: lm.map(pt => [pt.x * w, pt.y * h, pt.z || 0]),
                   score: results.multiHandedness && results.multiHandedness[idx] ? results.multiHandedness[idx].score : undefined
                 })) : [];
                 resolve(formatted);
@@ -56,10 +60,32 @@ export function useGestureTracker() {
             minTrackingConfidence: 0.5
           });
           // Adapter to match TFJS API signature
+          // Native MediaPipe Pose returns normalized {x,y,z,visibility} with NO names.
+          // WebcamCanvas.jsx expects pixel-scaled {name, x, y, score} objects.
+          const POSE_LANDMARK_NAMES = [
+            "nose","left_eye_inner","left_eye","left_eye_outer",
+            "right_eye_inner","right_eye","right_eye_outer",
+            "left_ear","right_ear","mouth_left","mouth_right",
+            "left_shoulder","right_shoulder","left_elbow","right_elbow",
+            "left_wrist","right_wrist","left_pinky","right_pinky",
+            "left_index","right_index","left_thumb","right_thumb",
+            "left_hip","right_hip","left_knee","right_knee",
+            "left_ankle","right_ankle","left_heel","right_heel",
+            "left_foot_index","right_foot_index"
+          ];
           poseInstance.estimatePoses = (video) => {
             return new Promise(async (resolve) => {
               poseInstance.onResults((results) => {
-                const formatted = results.poseLandmarks ? [{ keypoints: results.poseLandmarks }] : [];
+                const w = video.videoWidth || 640;
+                const h = video.videoHeight || 480;
+                const formatted = results.poseLandmarks ? [{
+                  keypoints: results.poseLandmarks.map((pt, idx) => ({
+                    name: POSE_LANDMARK_NAMES[idx] || `landmark_${idx}`,
+                    x: pt.x * w,
+                    y: pt.y * h,
+                    score: pt.visibility || 0
+                  }))
+                }] : [];
                 resolve(formatted);
               });
               await poseInstance.send({ image: video });
