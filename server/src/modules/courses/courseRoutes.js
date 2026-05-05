@@ -12,7 +12,7 @@ router.delete("/:id", authenticateToken, requireRole("instructor"), courseContro
 
 // ENROLLMENTS & PROGRESS (student-only — admin must NOT pollute data)
 router.post("/:id/enroll", authenticateToken, requireRole("learner", "student"), courseController.enrollUser);
-router.get("/my-enrollments", authenticateToken, requireRole("learner", "student"), courseController.getMyEnrollments);
+router.get("/my-enrollments", authenticateToken, courseController.getMyEnrollments);
 router.post("/:id/progress", authenticateToken, requireRole("learner", "student"), courseController.recordProgress);
 
 module.exports = router;
