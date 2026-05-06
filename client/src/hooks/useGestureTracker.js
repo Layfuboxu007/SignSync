@@ -1,19 +1,34 @@
 import { useState, useEffect } from "react";
 
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 2000; // Exponential: 2s, 4s, 8s
+
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 export function useGestureTracker() {
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [model, setModel] = useState(null);
   const [poseModel, setPoseModel] = useState(null);
 
   useEffect(() => {
     let handsInstance = null;
     let poseInstance = null;
+    let cancelled = false;
 
-    const initModels = async () => {
+    const initModels = async (attempt = 1) => {
       try {
+        if (cancelled) return;
+
         if (!window.Hands || !window.Pose) {
           // Wait for CDNs to load if they haven't yet
-          await new Promise(resolve => setTimeout(resolve, 500));
+          await delay(500);
+        }
+
+        if (!window.Hands || !window.Pose) {
+          throw new Error("MediaPipe scripts not loaded. Check your network connection.");
         }
 
         if (window.Hands) {
@@ -46,6 +61,7 @@ export function useGestureTracker() {
 
           // Dummy initialization to trigger loading
           await handsInstance.initialize();
+          if (cancelled) return;
           setModel(handsInstance);
         }
 
@@ -93,24 +109,40 @@ export function useGestureTracker() {
           };
 
           await poseInstance.initialize();
+          if (cancelled) return;
           setPoseModel(poseInstance);
         }
         
         console.log("MediaPipe Native Models Loaded Successfully!");
+        setError(null);
         setLoading(false);
       } catch (err) {
-        console.error("Failed to load native MediaPipe models", err);
-        setLoading(false);
+        console.error(`Failed to load MediaPipe models (attempt ${attempt}/${MAX_RETRIES})`, err);
+        
+        if (cancelled) return;
+
+        if (attempt < MAX_RETRIES) {
+          const backoff = RETRY_DELAY_MS * Math.pow(2, attempt - 1);
+          console.log(`Retrying in ${backoff}ms...`);
+          await delay(backoff);
+          if (!cancelled) {
+            return initModels(attempt + 1);
+          }
+        } else {
+          setError(`AI tracker failed to load after ${MAX_RETRIES} attempts. Please check your internet connection and refresh the page.`);
+          setLoading(false);
+        }
       }
     };
 
     initModels();
 
     return () => {
+      cancelled = true;
       if (handsInstance) handsInstance.close();
       if (poseInstance) poseInstance.close();
     };
   }, []);
 
-  return { model, poseModel, loading };
+  return { model, poseModel, loading, error };
 }

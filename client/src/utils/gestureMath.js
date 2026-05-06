@@ -1,4 +1,26 @@
+// Signs that require motion arcs and cannot be detected via static landmarks
+export const MOTION_SIGNS = ['J', 'Z'];
+export const isMotionSign = (signName) => MOTION_SIGNS.includes(signName);
+
+/**
+ * Evaluates whether hand landmarks match a target ASL sign.
+ * Returns { state, errorCode } where state is one of:
+ *   'MATCH'       — landmarks match the target sign
+ *   'WRONG_SIGN'  — hand detected but does not match
+ *   'NO_HAND'     — no valid landmarks provided
+ *   'MOTION_SIGN' — sign requires motion, cannot be evaluated statically
+ */
 export const evaluateGestureMatch = (landmarks, targetSign) => {
+  // No hand detected
+  if (!landmarks || !Array.isArray(landmarks) || landmarks.length < 21) {
+    return { state: 'NO_HAND', errorCode: null };
+  }
+
+  // Motion-based signs cannot be evaluated by static analysis
+  if (isMotionSign(targetSign)) {
+    return { state: 'MOTION_SIGN', errorCode: null };
+  }
+
   let isMatch = false;
   let errorCode = null;
 
@@ -77,9 +99,9 @@ export const evaluateGestureMatch = (landmarks, targetSign) => {
       if (!isMatch) errorCode = !fP_s ? "ERROR_PINKY_NOT_STRAIGHT" : "ERROR_OTHER_FINGERS_NOT_CURLED";
       break;
     case 'J': 
-      isMatch = fP_s; 
-      if (!isMatch) errorCode = "ERROR_PINKY_NOT_STRAIGHT_SWOOPING";
-      break; 
+      // J requires a swooping motion — handled as MOTION_SIGN above
+      // This case should never be reached, but kept for safety
+      return { state: 'MOTION_SIGN', errorCode: null };
     case 'K': 
       isMatch = fI_s && fM_s && sep_IM && thumbUp; 
       if (!isMatch) errorCode = !thumbUp ? "ERROR_THUMB_NOT_UP" : "ERROR_INDEX_MIDDLE_NOT_SEPARATED";
@@ -141,9 +163,9 @@ export const evaluateGestureMatch = (landmarks, targetSign) => {
       if (!isMatch) errorCode = (!thumbOut || !fP_s) ? "ERROR_THUMB_PINKY_NOT_OUT" : "ERROR_MIDDLE_FINGERS_NOT_CURLED";
       break;
     case 'Z': 
-      isMatch = fI_s && fM_c && fR_c && fP_c; 
-      if (!isMatch) errorCode = "ERROR_INDEX_SHOULD_DRAW_Z";
-      break; 
+      // Z requires drawing a Z shape — handled as MOTION_SIGN above
+      // This case should never be reached, but kept for safety
+      return { state: 'MOTION_SIGN', errorCode: null };
     case 'Thumbs Up Demo': 
       isMatch = thumbUp && fI_c && fM_c && fR_c && fP_c; 
       if (!isMatch) {
@@ -156,5 +178,5 @@ export const evaluateGestureMatch = (landmarks, targetSign) => {
       errorCode = "ERROR_UNKNOWN_SIGN";
   }
 
-  return { isMatch, errorCode };
+  return { state: isMatch ? 'MATCH' : 'WRONG_SIGN', errorCode: isMatch ? null : errorCode };
 };

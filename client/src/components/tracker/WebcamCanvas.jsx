@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback } from "react";
+import React, { useRef, useEffect, useCallback, useState } from "react";
 import Webcam from "react-webcam";
 
 const currentPoints = {
@@ -20,6 +20,7 @@ const poseConnections = [
 export default function WebcamCanvas({ loading, onFrameProcessed }) {
   const webcamRef = useRef(null);
   const canvasRef = useRef(null);
+  const [cameraError, setCameraError] = useState(null);
 
   // Expose the refs and draw functions so the parent can manage the detection loop
   // without this component holding the business logic.
@@ -99,6 +100,20 @@ export default function WebcamCanvas({ loading, onFrameProcessed }) {
     }
   }, [onFrameProcessed, drawMesh]);
 
+  // Camera error handler for the Webcam component
+  const handleUserMediaError = useCallback((error) => {
+    console.error("Camera access error:", error);
+    if (error?.name === "NotAllowedError" || error?.name === "PermissionDeniedError") {
+      setCameraError("Camera access is required for the Practice Room. Please enable camera permissions in your browser settings and reload this page.");
+    } else if (error?.name === "NotFoundError" || error?.name === "DevicesNotFoundError") {
+      setCameraError("No camera detected. Please connect a webcam and reload the page.");
+    } else if (error?.name === "NotReadableError" || error?.name === "TrackStartError") {
+      setCameraError("Your camera is being used by another application. Please close other apps using the camera and try again.");
+    } else {
+      setCameraError("Unable to access camera. Please check your device settings and try again.");
+    }
+  }, []);
+
   return (
     <div className="card-outer" style={{ position: "relative", minHeight: "600px", padding: 0, overflow: "hidden", borderRadius: "var(--radius-xl)" }}>
       {loading ? (
@@ -110,9 +125,23 @@ export default function WebcamCanvas({ loading, onFrameProcessed }) {
         </div>
       ) : null}
 
+      {cameraError ? (
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", zIndex: 15, background: "rgba(255,255,255,0.95)", backdropFilter: "blur(8px)", padding: "var(--space-8)", textAlign: "center" }}>
+          <div style={{ width: "64px", height: "64px", borderRadius: "50%", background: "hsla(0, 84%, 60%, 0.1)", color: "#ef4444", display: "flex", justifyContent: "center", alignItems: "center", marginBottom: "var(--space-5)" }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 1l22 22"/><path d="M21 21H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3l2-3h6l2 3h3a2 2 0 0 1 2 2v9.34"/><path d="M14.12 14.12A3 3 0 1 1 9.88 9.88"/></svg>
+          </div>
+          <h3 style={{ fontSize: "var(--text-md)", color: "#ef4444", marginBottom: "var(--space-3)" }}>Camera Unavailable</h3>
+          <p style={{ fontSize: "var(--text-sm)", color: "var(--color-text-secondary)", maxWidth: "400px", marginBottom: "var(--space-6)" }}>
+            {cameraError}
+          </p>
+          <button onClick={() => window.location.reload()} style={{ width: "auto" }}>Reload Page</button>
+        </div>
+      ) : null}
+
       <Webcam
         ref={webcamRef}
         videoConstraints={{ width: 480, height: 360, facingMode: "user" }}
+        onUserMediaError={handleUserMediaError}
         style={{
           position: "absolute",
           left: 0,

@@ -4,8 +4,8 @@ const catchAsync = require("../../utils/catchAsync");
 
 const courseSchema = z.object({
   title: z.string().min(1),
-  gestures: z.any().optional(),
-  mastery_score: z.number().optional()
+  gestures: z.any().optional()
+  // mastery_score: removed — was never read or enforced by any system component
 });
 
 exports.createCourse = catchAsync(async (req, res) => {

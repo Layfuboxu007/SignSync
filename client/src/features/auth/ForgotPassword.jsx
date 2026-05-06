@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { supabase, API } from "../../api";
+import { supabase } from "../../api";
 import { Alert } from "../../components/common/Alert";
 import { FormField } from "../../components/common/FormField";
 
@@ -16,18 +16,13 @@ function ForgotPassword() {
     setErrorMsg("");
     
     try {
-      let targetEmail = email;
-      
-      if (!targetEmail.includes('@')) {
-         try {
-           const res = await API.post("/users/lookup-email", { username: email });
-           targetEmail = res.data.email;
-         } catch {
-           throw new Error("Username not found");
-         }
+      // Only accept email addresses — no username resolution.
+      // This prevents the old enumeration vector via /lookup-email.
+      if (!email.includes('@')) {
+        throw new Error("Please enter your email address, not your username.");
       }
       
-      const { error } = await supabase.auth.resetPasswordForEmail(targetEmail, {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: window.location.origin + "/update-password"
       });
       
@@ -48,7 +43,7 @@ function ForgotPassword() {
           <p className="text-muted text-sm">
             {submitted 
               ? "Check your inbox for reset instructions" 
-              : "Enter your username or email to recover your account"}
+              : "Enter your email address to recover your account"}
           </p>
         </div>
 
@@ -57,10 +52,10 @@ function ForgotPassword() {
             {errorMsg && <Alert type="error">Error: {errorMsg}</Alert>}
             
             <FormField
-              label="USERNAME OR EMAIL"
+              label="EMAIL ADDRESS"
               id="forgot-email"
-              type="text"
-              placeholder="Enter your username or email"
+              type="email"
+              placeholder="Enter your email address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required

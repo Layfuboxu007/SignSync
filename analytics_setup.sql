@@ -34,6 +34,14 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 3. Create a view for daily engagement metrics to speed up dashboard loads
+--
+-- PERFORMANCE NOTE: This is a regular view, NOT a materialized view.
+-- Every query re-executes the full aggregation against analytics_events.
+-- At scale (>10k users / >100k events), consider:
+--   1. Converting to MATERIALIZED VIEW
+--   2. Adding a cron job: REFRESH MATERIALIZED VIEW daily_engagement_metrics;
+--   3. Or computing metrics in a background worker and storing in a metrics table.
+--
 CREATE OR REPLACE VIEW daily_engagement_metrics AS
 SELECT 
     date_trunc('day', created_at) AS report_date,

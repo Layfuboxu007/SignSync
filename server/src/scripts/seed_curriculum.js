@@ -1,3 +1,9 @@
+/**
+ * IDEMPOTENT: Safe to run multiple times.
+ * Uses .update().eq('title', ...) which updates existing courses by title match.
+ * Does NOT insert new rows — only updates the `gestures` JSONB on existing courses.
+ * If a course title doesn't match, it silently skips (no error, no duplicate).
+ */
 require('dotenv').config({ path: require('path').resolve(__dirname, '../../../.env') });
 // We'll load the server env explicitly since the script might be run from different places
 require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env') });

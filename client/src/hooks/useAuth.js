@@ -5,37 +5,42 @@ import { useUserStore } from "../store/userStore";
 export function useAuth() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const { setProfile, setSession } = useUserStore.getState();
 
-  const login = async (username, password) => {
+  /**
+   * Login via server-side resolution.
+   * The backend resolves username → email internally and performs
+   * the Supabase Auth sign-in. The client never sees the email
+   * for username-based logins, closing the enumeration vector.
+   */
+  const login = async (identifier, password) => {
     setLoading(true);
     setError("");
     try {
-      let loginEmail = username;
-      if (!loginEmail.includes('@')) {
-        try {
-          const res = await API.post("/users/lookup-email", { username });
-          loginEmail = res.data.email;
-        } catch (e) {
-          throw new Error(e.response?.data?.error || "Username not found in system");
-        }
+      const { data } = await API.post("/users/login", { identifier, password });
+
+      if (!data.session) {
+        throw new Error("Login failed — no session returned");
       }
 
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: loginEmail,
-        password: password
+      // Set the Supabase session so the client-side auth state stays in sync
+      await supabase.auth.setSession({
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token
       });
-      if (error) throw error;
-      
-      const { data: dbData } = await API.get("/users/me");
-      const role = dbData?.data?.role || dbData?.role || "student";
-      
-      // CRITICAL: Update the global state so ProtectedRoute knows we are logged in!
-      useUserStore.setState({ session: data.session, profile: dbData?.data || dbData, loading: false });
+
+      const role = data.profile?.role || data.role || "student";
+
+      // Update global state
+      useUserStore.setState({
+        session: data.session,
+        profile: data.profile,
+        loading: false
+      });
       
       return { success: true, role };
     } catch (err) {
-      setError(err.message || "Login failed. Please check your credentials.");
+      const msg = err.response?.data?.error || err.message || "Login failed. Please check your credentials.";
+      setError(msg);
       return { success: false };
     } finally {
       setLoading(false);
