@@ -15,8 +15,8 @@ import ProfileMenu from "./ProfileMenu";
 const links = [
   { to: "/", label: "Home" },
   { to: "/about", label: "About" },
-  { to: "/#features", label: "Features" },
-  { to: "/#contact", label: "Contact" },
+  { to: "/features", label: "Features" },
+  { to: "/contact", label: "Contact" },
 ];
 
 export default function Navbar() {

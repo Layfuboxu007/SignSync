@@ -14,6 +14,8 @@ import Register from "./features/auth/Register";
 import ForgotPassword from "./features/auth/ForgotPassword";
 import UpdatePassword from "./features/auth/UpdatePassword";
 import About from "./pages/About";
+import Features from "./pages/Features";
+import Contact from "./pages/Contact";
 import CourseCatalogPage from "./pages/courses/CourseCatalogPage";
 
 import Dashboard from "./features/dashboard/Dashboard";
@@ -40,6 +42,8 @@ function App() {
         <Route element={<PublicLayout />}>
           <Route path="/" element={<Landing />} />
           <Route path="/about" element={<About />} />
+          <Route path="/features" element={<Features />} />
+          <Route path="/contact" element={<Contact />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
