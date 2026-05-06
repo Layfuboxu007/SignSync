@@ -16,10 +16,10 @@ export default function Reports() {
       setLoading(true);
       try {
         if (activeTab === "logs") {
-          const res = await API.get("/api/admin/logs?limit=200");
+          const res = await API.get("/admin/logs?limit=200");
           setLogs(res.data.logs || []);
         } else {
-          const res = await API.get("/api/admin/transactions?limit=200");
+          const res = await API.get("/admin/transactions?limit=200");
           setTransactions(res.data.transactions || []);
         }
       } catch (err) {

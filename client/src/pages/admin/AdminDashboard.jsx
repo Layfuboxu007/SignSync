@@ -175,8 +175,8 @@ export default function AdminDashboard() {
           <h3 style={{ fontSize: "16px", color: "#0f172a", marginBottom: "24px", display: "flex", alignItems: "center", gap: "8px", fontWeight: "600" }}>
             <BarChart2 size={18} color="#2563eb" /> Daily Active Users {filterType === 'custom' ? '(Custom Range)' : `(${filterType}D)`}
           </h3>
-          <div style={{ height: "300px", width: "100%", minWidth: 0 }}>
-            <ResponsiveContainer width="100%" height="100%">
+          <div style={{ height: "300px", width: "100%", minWidth: 0, minHeight: 0 }}>
+            <ResponsiveContainer width="99%" height="100%">
               <LineChart data={metrics.chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#64748b", fontFamily: "'Fira Code', monospace" }} dy={10} />
@@ -201,8 +201,8 @@ export default function AdminDashboard() {
             <AlertCircle size={18} color="#d97706" /> Difficult Modules
           </h3>
           <p style={{ fontSize: "12px", color: "#64748b", marginBottom: "24px" }}>Highest tracking failure rates {filterType === 'custom' ? '(Custom Range)' : `(${filterType}D)`}</p>
-          <div style={{ height: "260px", width: "100%", minWidth: 0 }}>
-            <ResponsiveContainer width="100%" height="100%">
+          <div style={{ height: "260px", width: "100%", minWidth: 0, minHeight: 0 }}>
+            <ResponsiveContainer width="99%" height="100%">
               <BarChart data={engagement || []} layout="vertical" margin={{ left: 0, right: 20, top: 0, bottom: 0 }}>
                 <XAxis type="number" hide />
                 <YAxis dataKey="module_name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#64748b" }} width={80} />
