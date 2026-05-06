@@ -148,7 +148,12 @@ function Register() {
           <FormField label="EMAIL ADDRESS" id="reg-email" type="email" placeholder="name@domain.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
 
           <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "var(--space-4)" }}>
-            <FormField label="PASSWORD" id="reg-password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <div>
+              <FormField label="PASSWORD" id="reg-password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              <p className="text-muted" style={{ fontSize: "var(--text-xs)", marginTop: "var(--space-1)" }}>
+                Must be at least 8 characters, with 1 uppercase, 1 lowercase, 1 number, and 1 special character.
+              </p>
+            </div>
             <FormField label="CONFIRM PASSWORD" id="reg-confirm" type="password" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
           </div>
 

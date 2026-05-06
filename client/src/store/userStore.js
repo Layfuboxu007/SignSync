@@ -80,7 +80,12 @@ export const useUserStore = create((set, get) => ({
   },
 
   logout: async () => {
-    await supabase.auth.signOut();
-    set({ session: null, profile: null });
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.warn("Error during sign out:", error);
+    } finally {
+      set({ session: null, profile: null });
+    }
   }
 }));

@@ -70,7 +70,7 @@ exports.enrollUser = async (user, courseId) => {
 };
 
 exports.getMyEnrollments = async (userId) => {
-  const { data: enrollments, error } = await supabase
+  const { data, error } = await supabase
     .from("enrollments")
     .select(`
       status,
@@ -80,6 +80,8 @@ exports.getMyEnrollments = async (userId) => {
     `)
     .eq("user_id", userId);
   if (error) throw error;
+
+  const enrollments = data || [];
 
   // Fetch progress for these courses
   if (enrollments.length > 0) {

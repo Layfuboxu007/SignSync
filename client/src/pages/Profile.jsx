@@ -43,6 +43,7 @@ function Profile() {
 
   const handleUpdate = async (e) => {
     e.preventDefault();
+    if (loading) return;
     setLoading(true);
     setErrorMsg("");
     try {

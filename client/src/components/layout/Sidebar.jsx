@@ -12,6 +12,7 @@ const studentLinks = [
 
 const instructorLinks = [
   { to: "/instructor/dashboard", label: "HQ Overview", icon: LayoutDashboard },
+  { to: "/courses",              label: "Courses",     icon: GraduationCap },
   { to: "/profile",              label: "Profile",     icon: UserCircle },
 ];
 

@@ -40,7 +40,6 @@ function App() {
         <Route element={<PublicLayout />}>
           <Route path="/" element={<Landing />} />
           <Route path="/about" element={<About />} />
-          <Route path="/courses" element={<CourseCatalogPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -83,6 +82,7 @@ function App() {
         <Route element={<ProtectedRoute />}>
           <Route element={<AppLayout />}>
             <Route path="/profile" element={<Profile />} />
+            <Route path="/courses" element={<CourseCatalogPage />} />
           </Route>
         </Route>
       </Routes>

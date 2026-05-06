@@ -78,7 +78,7 @@ export default function PracticeRoomPage() {
     detect
   } = usePracticeSession();
 
-  const [privacyAccepted, setPrivacyAccepted] = useState(localStorage.getItem('signsync_privacy_accepted') === 'true');
+  const [privacyAccepted, setPrivacyAccepted] = useState(() => localStorage.getItem('signsync_privacy_accepted') === 'true');
   const [flashcardMode, setFlashcardMode] = useState(false);
   const [showPerformanceWarning, setShowPerformanceWarning] = useState(false);
   
