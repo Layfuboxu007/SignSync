@@ -38,6 +38,7 @@ function StartPage() {
       title: "Medical & Clinical",
       desc: "Master specialized healthcare vocabulary and patient triage terminology.",
       color: "#ec4899"
+    }
   ];
 
   return (

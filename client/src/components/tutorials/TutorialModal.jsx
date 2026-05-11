@@ -13,7 +13,13 @@ export function TutorialModal({ videoUrl, title, onComplete }) {
       const key = `signsync_video_progress_${videoUrl.replace(/[^a-zA-Z0-9]/g, '_')}`;
       const savedTime = localStorage.getItem(key);
       
-      videoRef.current.currentTime = savedTime ? parseFloat(savedTime) : 0;
+      try {
+        const parsedTime = parseFloat(savedTime);
+        videoRef.current.currentTime = (savedTime && !isNaN(parsedTime)) ? parsedTime : 0;
+      } catch (e) {
+        videoRef.current.currentTime = 0;
+      }
+      
       videoRef.current.muted = false;
       // Attempt to autoplay with sound
       const playPromise = videoRef.current.play();
