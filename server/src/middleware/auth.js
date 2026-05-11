@@ -1,4 +1,4 @@
-const { supabase } = require("../config/db");
+const { supabase, supabaseAuth } = require("../config/db");
 
 const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -6,13 +6,15 @@ const authenticateToken = async (req, res, next) => {
   
   if (!token) return res.status(401).json({ error: "Access denied" });
   
-  const { data: { user }, error } = await supabase.auth.getUser(token);
+  // Use the SEPARATE auth client for token verification
+  // to prevent polluting the primary DB client's auth state.
+  const { data: { user }, error } = await supabaseAuth.auth.getUser(token);
   
   if (error || !user) {
     return res.status(403).json({ error: "Invalid token" });
   }
 
-  // Fetch the numeric ID and membership status from the public users table
+  // Use the PRIMARY client (service role) for DB queries — always bypasses RLS
   let { data: dbUser } = await supabase.from('users').select('id, role, membership_status, membership_expires_at').eq('email', user.email).single();
 
   // If the user exists in Supabase Auth but not in our public users table,
