@@ -14,26 +14,24 @@ const authenticateToken = async (req, res, next) => {
     }
 
     // Fetch the user from our public users table.
-    // Use maybeSingle() to avoid PGRST116 errors when the user doesn't exist yet.
-    let dbUser = null;
-    const { data: foundUser } = await supabase
+    let { data: dbUser } = await supabase
       .from('users')
       .select('id, role, membership_status, membership_expires_at')
       .eq('email', user.email)
       .maybeSingle();
 
-    dbUser = foundUser;
-
     // If the user exists in Supabase Auth but not in our public users table,
     // auto-create the row so login doesn't break.
     if (!dbUser) {
       const meta = user.user_metadata || {};
+      const baseUsername = meta.username || user.email.split('@')[0];
+
       const { data: newUser, error: insertError } = await supabase
         .from('users')
         .insert({
           first_name: meta.first_name || meta.firstName || '',
           last_name: meta.last_name || meta.lastName || '',
-          username: meta.username || user.email.split('@')[0],
+          username: baseUsername,
           role: meta.role || 'learner',
           email: user.email,
           password_hash: 'supabase-auth',
@@ -43,14 +41,35 @@ const authenticateToken = async (req, res, next) => {
         .maybeSingle();
       
       if (insertError) {
-        console.error("Auto-create user failed:", insertError.message);
-        // User likely already exists (unique constraint) — retry fetch
+        // Could be a unique constraint on username or email.
+        // First, try fetching again (maybe the user exists with this email but was missed).
         const { data: retryUser } = await supabase
           .from('users')
           .select('id, role, membership_status, membership_expires_at')
           .eq('email', user.email)
           .maybeSingle();
-        dbUser = retryUser;
+        
+        if (retryUser) {
+          dbUser = retryUser;
+        } else {
+          // User doesn't exist by email — insert failed due to USERNAME conflict.
+          // Retry with a unique username suffix.
+          const uniqueUsername = `${baseUsername}_${Date.now().toString(36).slice(-4)}`;
+          const { data: retryNew } = await supabase
+            .from('users')
+            .insert({
+              first_name: meta.first_name || meta.firstName || '',
+              last_name: meta.last_name || meta.lastName || '',
+              username: uniqueUsername,
+              role: meta.role || 'learner',
+              email: user.email,
+              password_hash: 'supabase-auth',
+              membership_status: 'free'
+            })
+            .select('id, role, membership_status, membership_expires_at')
+            .maybeSingle();
+          dbUser = retryNew;
+        }
       } else {
         dbUser = newUser;
       }
@@ -92,10 +111,7 @@ const authenticateToken = async (req, res, next) => {
     next();
   } catch (err) {
     console.error("[Auth Middleware] Unhandled crash:", err);
-    return res.status(500).json({ 
-      error: "Authentication failed", 
-      debug: err.message 
-    });
+    return res.status(500).json({ error: "Authentication failed" });
   }
 };
 
