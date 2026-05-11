@@ -52,19 +52,24 @@ const baseCourseUpdates = [
   {
     title: 'Healthcare: ER Triage',
     gestures: [
-      { module: 'Module 1: Pain Scale', signs: ['Pain', 'Where', 'Level 1', 'Level 10'] },
-      { module: 'Module 2: Trauma', signs: ['Bleeding', 'Broken', 'Dizzy', 'Heart Attack'] },
-      { module: 'Module 3: History', signs: ['Allergy', 'Medicine', 'Pregnant', 'Diabetic'] },
-      { module: 'Module 4: Commands', signs: ['Sit down', 'Breathe', 'Stay calm', 'Wait'] }
+      { module: 'Module 1: Personnel & Places', signs: ['Medical', 'Hospital', "Doctor's office", 'Doctor', 'Nurse'] },
+      { module: 'Module 2: Body Parts', signs: ['Legs', 'Feet', 'Head', 'Eyes', 'Ears', 'Nose', 'Mouth', 'Tonsils'] },
+      { module: 'Module 3: Symptoms', signs: ['Hurt', 'Sore throat', 'Cold', 'Cough', 'Dizzy', 'Nauseous', 'Weak', 'Sweat', 'Throw up', 'Fever', 'Broken', 'Sprain', 'Allergies', 'Pregnant'] },
+      { module: 'Module 4: Vitals & Treatment', signs: ['Temperature', 'High', 'Low', 'Blood pressure', 'Blood', 'Heal', 'Medicine', 'Vaccine', 'Water', 'Surgery'] },
+      { module: 'Module 5: Common Phrases', signs: ['Are you okay?', 'Feel better?', 'Where does it hurt?', 'Any allergies?', 'Doctor will be here soon'] }
     ]
   },
   {
     title: 'Healthcare: Consent',
     gestures: [
-      { module: 'Module 1: Anatomy', signs: ['Blood', 'Heart', 'Lungs', 'Surgery'] },
-      { module: 'Module 2: Explaining', signs: ['Look inside', 'Fix bone', 'Sleep'] },
-      { module: 'Module 3: Risks', signs: ['Infection', 'Bleeding', 'Death', 'Scar'] },
-      { module: 'Module 4: Legal', signs: ['Understand?', 'Agree?', 'Sign name', 'Say no'] }
+      { module: 'Module 1: Jobs & Transport', signs: ['Doctor', 'Nurse', 'EMT', 'Paramedic', 'Ambulance', 'Interpreter'] },
+      { module: 'Module 2: Locations', signs: ['Hospital', 'Clinic', 'ER', 'Waiting room', 'Elevator', 'Cafeteria', 'Pharmacy', 'Gift shop', 'Room', 'Floor'] },
+      { module: 'Module 3: Admin & Family', signs: ['Appointment', 'Stay', 'Overnight', 'Contact', 'Family', 'Insurance', 'Wheelchair'] },
+      { module: 'Module 4: Patient Status', signs: ['Emergency', 'Feel', 'Hurt', 'Breathe', 'Calm', 'Sick', 'Confused', 'Better'] },
+      { module: 'Module 5: History & Substances', signs: ['Oxygen', 'Medicine', 'Drug', 'Drink', 'Alcohol', 'Smoking', 'Allergies', 'Pregnant'] },
+      { module: 'Module 6: Symptoms & Vitals', signs: ['Cold', 'Cough', 'Fever', 'High', 'Low', 'Weak', 'Nauseous', 'Sore throat', 'Sweat', 'Throw up', 'Broken', 'Sprain', 'Blood', 'Blood pressure', 'Temperature'] },
+      { module: 'Module 7: Treatment', signs: ['Heal', 'Shot', 'IV', 'Surgery'] },
+      { module: 'Module 8: Common Phrases', signs: ['Do you have insurance?', 'Cafeteria closes at nine', 'Elevator is over there', 'Where does it hurt?', 'Contacting an interpreter'] }
     ]
   }
 ];
