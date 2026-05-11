@@ -146,7 +146,7 @@ export default function PracticeRoomPage() {
     flatCurriculum, currentIndex, targetItem, targetSign, targetModule, targetIsMotionSign,
     gestureStatus, detectionState, currentErrorCode, score, completed, modelLoading, modelError, model, poseModel,
     accessDenied,
-    showIntro, handleIntroComplete,
+    showIntro, handleIntroComplete, handleReplayIntro,
     handleMotionSignComplete,
     detect,
     CONSECUTIVE_FRAMES_REQUIRED,
@@ -201,7 +201,7 @@ export default function PracticeRoomPage() {
             <p className="text-muted text-sm">AI Video Tracker &middot; Hands-On Practice</p>
           </div>
           {targetItem.introVideoUrl && (
-             <button className="secondary" style={{ padding: "var(--space-2) var(--space-4)" }} onClick={() => setShowIntro(true)}>
+             <button className="secondary" style={{ padding: "var(--space-2) var(--space-4)" }} onClick={handleReplayIntro}>
                Replay Intro
              </button>
           )}

@@ -1,14 +1,31 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { X, PlayCircle } from "lucide-react";
 
 export function TutorialModal({ videoUrl, title, onComplete }) {
+  const videoRef = useRef(null);
+
   useEffect(() => {
     // Prevent scrolling behind modal
     document.body.style.overflow = 'hidden';
+    
+    // Reset video state when modal opens
+    if (videoRef.current) {
+      videoRef.current.currentTime = 0;
+      videoRef.current.muted = false;
+      // Attempt to autoplay with sound
+      const playPromise = videoRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.warn("Autoplay with sound blocked. User interaction required:", error);
+          // Browser blocked autoplay due to audio. User must click play.
+        });
+      }
+    }
+
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, []);
+  }, [videoUrl]);
 
   return (
     <div style={{
@@ -42,9 +59,10 @@ export function TutorialModal({ videoUrl, title, onComplete }) {
 
         <div style={{ borderRadius: "var(--radius-xl)", overflow: "hidden", background: "#000", aspectRatio: "16/9", marginBottom: "var(--space-6)" }}>
           <video 
+            ref={videoRef}
             src={videoUrl} 
             controls 
-            autoPlay 
+            playsInline
             style={{ width: "100%", height: "100%", objectFit: "contain" }}
           />
         </div>

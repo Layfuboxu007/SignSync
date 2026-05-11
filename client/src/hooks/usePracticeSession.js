@@ -135,6 +135,9 @@ export function usePracticeSession() {
     setShowIntro(false);
   }, [targetModule]);
 
+  const handleReplayIntro = useCallback(() => {
+    setShowIntro(true);
+  }, []);
 
 
   // ── 1.3: Manual completion for motion signs ───────────────
@@ -290,6 +293,7 @@ export function usePracticeSession() {
     // Tutorial
     showIntro,
     handleIntroComplete,
+    handleReplayIntro,
     // Motion signs
     handleMotionSignComplete,
     // Detection
