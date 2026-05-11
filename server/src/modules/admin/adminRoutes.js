@@ -18,4 +18,7 @@ router.get('/users', adminController.getUsers);
 router.get('/logs', adminController.getActivityLogs);
 router.get('/transactions', adminController.getTransactions);
 
+// Membership override — admin can grant or revoke membership for any user
+router.patch('/users/:id/membership', adminController.overrideMembership);
+
 module.exports = router;

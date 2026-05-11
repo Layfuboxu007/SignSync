@@ -20,5 +20,6 @@ router.get("/me", authenticateToken, userController.getMe);
 // Student-only — admins should NOT delete themselves or toggle membership
 router.delete("/", authenticateToken, requireRole("learner", "student"), userController.deleteMe);
 router.post("/membership", authenticateToken, requireRole("learner", "student"), userController.toggleMembership);
+router.post("/cancel-membership", authenticateToken, requireRole("learner", "student"), userController.cancelMembership);
 
 module.exports = router;

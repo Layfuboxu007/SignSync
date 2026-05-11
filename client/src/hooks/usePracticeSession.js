@@ -90,8 +90,14 @@ export function usePracticeSession() {
             setAccessDenied(res.data.reason || "Access denied");
           }
         })
-        .catch(() => {
-          // Endpoint may not exist yet during rollout — fail open
+        .catch((err) => {
+          // Fail-closed: if we cannot verify access, block the session.
+          // This prevents membership bypass under degraded network conditions.
+          if (err.response && err.response.status === 403) {
+            setAccessDenied(err.response.data?.reason || "Access denied. Your membership may have expired.");
+          } else {
+            setAccessDenied("Unable to verify course access. Please check your connection and try again.");
+          }
         });
     }
   }, [location.state?.courseId]);

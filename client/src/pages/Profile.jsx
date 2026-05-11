@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { API, supabase } from "../api";
 import { useUserStore } from "../store/userStore";
-import { User, Mail, Shield, ShieldCheck, ShieldAlert, Crown, Settings } from "lucide-react";
+import { User, Mail, Shield, ShieldCheck, ShieldAlert, Crown, Settings, Calendar, XCircle } from "lucide-react";
 import { Alert } from "../components/common/Alert";
 import { FormField } from "../components/common/FormField";
 import MembershipModal from "../components/checkout/MembershipModal";
@@ -13,11 +13,13 @@ function Profile() {
   const [newPassword, setNewPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const navigate = useNavigate();
-  const { logout, profile } = useUserStore();
+  const { logout, profile, cancelMembership } = useUserStore();
   const isStudent = profile?.role === 'learner' || profile?.role === 'student';
+  const isMember = profile?.membership_status === 'member';
 
   const displayName = profile?.first_name
     ? `${profile.first_name} ${profile.last_name || ""}`.trim()
@@ -28,6 +30,11 @@ function Profile() {
     : (profile?.username || "U")[0].toUpperCase();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const formatDate = (iso) => {
+    if (!iso) return "N/A";
+    return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  };
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -69,6 +76,22 @@ function Profile() {
     }
   };
 
+  const handleCancelMembership = async () => {
+    if (!window.confirm("Are you sure you want to cancel your membership? You will lose access to all advanced courses immediately.")) return;
+
+    setCancelLoading(true);
+    const result = await cancelMembership();
+    setCancelLoading(false);
+
+    if (result) {
+      setSuccessMsg("Membership cancelled. You can re-subscribe at any time.");
+      setTimeout(() => setSuccessMsg(""), 4000);
+    } else {
+      setErrorMsg("Failed to cancel membership. Please try again.");
+      setTimeout(() => setErrorMsg(""), 4000);
+    }
+  };
+
   const handleDeleteAccount = async () => {
     if (window.confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
       setDeleteLoading(true);
@@ -107,7 +130,7 @@ function Profile() {
             <span className="badge" style={{ textTransform: "capitalize" }}>
               {profile?.role || "learner"}
             </span>
-            {isStudent && (profile?.membership_status === 'member' ? (
+            {isStudent && (isMember ? (
               <span className="badge" style={{ background: "hsla(160, 84%, 39%, 0.1)", color: "var(--color-success)", borderColor: "hsla(160, 84%, 39%, 0.3)" }}>
                 <ShieldCheck size={12} /> Active Member
               </span>
@@ -123,8 +146,50 @@ function Profile() {
       {errorMsg && <Alert type="error">Error: {errorMsg}</Alert>}
       {successMsg && <Alert type="success">{successMsg}</Alert>}
 
-      {/* Membership — students only */}
-      {isStudent && profile?.membership_status !== 'member' && (
+      {/* Membership Management — students only */}
+      {isStudent && (isMember ? (
+        /* ── Active Member: Management Card ── */
+        <div className="card-outer" style={{ marginBottom: "var(--space-8)", borderColor: "hsla(160, 84%, 39%, 0.3)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)", marginBottom: "var(--space-5)" }}>
+            <div style={{ width: "48px", height: "48px", borderRadius: "var(--radius-lg)", background: "hsla(160, 84%, 39%, 0.1)", color: "var(--color-success)", display: "flex", justifyContent: "center", alignItems: "center", flexShrink: 0 }}>
+              <Crown size={24} strokeWidth={1.5} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <h3 style={{ fontSize: "var(--text-base)", marginBottom: "var(--space-1)", color: "var(--color-text-primary)" }}>Membership Active</h3>
+              <p className="text-muted text-sm">You have full access to all advanced courses.</p>
+            </div>
+          </div>
+
+          {/* Expiry Info */}
+          {profile?.membership_expires_at && (
+            <div style={{ background: "var(--color-overlay)", borderRadius: "var(--radius-md)", padding: "var(--space-4)", marginBottom: "var(--space-5)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span className="text-muted text-sm flex items-center gap-2">
+                <Calendar size={14} /> Renews on
+              </span>
+              <span style={{ fontSize: "var(--text-sm)", fontWeight: "700", color: "var(--color-text-primary)" }}>
+                {formatDate(profile.membership_expires_at)}
+              </span>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={handleCancelMembership}
+            disabled={cancelLoading}
+            style={{
+              width: "100%",
+              background: "hsla(0, 84%, 60%, 0.06)",
+              color: "var(--color-danger)",
+              border: "1px solid hsla(0, 84%, 60%, 0.2)",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: "8px"
+            }}
+          >
+            <XCircle size={16} />
+            {cancelLoading ? "Cancelling..." : "Cancel Membership"}
+          </button>
+        </div>
+      ) : (
+        /* ── Free Tier: Upgrade CTA ── */
         <div className="card-outer" style={{ marginBottom: "var(--space-8)", display: "flex", alignItems: "center", gap: "var(--space-5)", background: "linear-gradient(135deg, var(--color-brand-light) 0%, var(--color-canvas) 100%)", borderColor: "var(--color-brand)" }}>
           <div style={{ color: "var(--color-brand)", flexShrink: 0 }}>
             <Crown size={32} strokeWidth={1.5} />
@@ -141,7 +206,7 @@ function Profile() {
             Upgrade Now
           </button>
         </div>
-      )}
+      ))}
 
       {/* Account Settings Form */}
       <form onSubmit={handleUpdate}>

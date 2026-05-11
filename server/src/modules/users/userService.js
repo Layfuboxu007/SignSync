@@ -31,7 +31,8 @@ exports.syncUser = async (userData) => {
     role: safeRole,
     email: userData.email,
     password_hash: "supabase-auth",
-    membership_status: "free"
+    membership_status: "free",
+    membership_expires_at: null
   });
   if (error) throw error;
   return true;
@@ -40,7 +41,7 @@ exports.syncUser = async (userData) => {
 exports.getUserProfile = async (userId) => {
   const { data: user, error } = await supabase
     .from("users")
-    .select("id, first_name, last_name, username, email, role, membership_status, created_at")
+    .select("id, first_name, last_name, username, email, role, membership_status, membership_expires_at, created_at")
     .eq("id", userId)
     .single();
   if (error || !user) throw new Error("User not found");
@@ -53,13 +54,48 @@ exports.deleteUser = async (userId) => {
   return true;
 };
 
+/**
+ * Toggle membership status for a user.
+ * When upgrading to 'member', sets a 30-day expiry.
+ * When downgrading to 'free', clears the expiry.
+ */
 exports.toggleMembership = async (userId, newStatus) => {
+  const updatePayload = { membership_status: newStatus };
+
+  if (newStatus === 'member') {
+    // Set expiry to 30 days from now
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30);
+    updatePayload.membership_expires_at = expiresAt.toISOString();
+  } else {
+    // Downgrade: clear expiry
+    updatePayload.membership_expires_at = null;
+  }
+
   const { data, error } = await supabase
     .from("users")
-    .update({ membership_status: newStatus })
+    .update(updatePayload)
     .eq("id", userId)
-    .select()
+    .select("id, first_name, last_name, username, email, role, membership_status, membership_expires_at, created_at")
     .single();
   if (error) throw error;
   return data;
+};
+
+/**
+ * Record a transaction in the audit log.
+ * Used for membership upgrades, downgrades, admin overrides, and auto-expiries.
+ */
+exports.recordTransaction = async (userId, amount, transactionType, reference) => {
+  const { error } = await supabase.from("transactions").insert({
+    user_id: userId,
+    amount: amount,
+    payment_status: 'completed',
+    transaction_type: transactionType,
+    reference: reference
+  });
+  if (error) {
+    // Non-blocking: log but don't crash the request
+    console.error("[Transaction Audit] Failed to record:", error.message);
+  }
 };

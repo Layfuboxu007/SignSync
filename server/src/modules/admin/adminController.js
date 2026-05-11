@@ -1,6 +1,8 @@
 const { supabase } = require('../../config/db');
 const analyticsService = require('./analyticsService');
 const catchAsync = require('../../utils/catchAsync');
+const z = require('zod');
+const userService = require('../users/userService');
 
 exports.trackEvent = catchAsync(async (req, res) => {
   const { event_type, metadata } = req.body;
@@ -72,7 +74,7 @@ exports.getUsers = catchAsync(async (req, res) => {
 
   const { data: users, count, error } = await supabase
     .from('users')
-    .select('id, first_name, last_name, email, role, membership_status, created_at', { count: 'exact' })
+    .select('id, first_name, last_name, email, role, membership_status, membership_expires_at, created_at', { count: 'exact' })
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
 
@@ -126,4 +128,38 @@ exports.getTransactions = catchAsync(async (req, res) => {
     transactions,
     total: count
   });
+});
+
+// ── Admin Membership Override ───────────────────────────────
+
+const overrideMembershipSchema = z.object({
+  status: z.enum(["free", "member"]),
+  expiresAt: z.string().optional() // ISO date string, optional override
+});
+
+/**
+ * PATCH /admin/users/:id/membership
+ * Allows an admin to manually grant or revoke membership for any user.
+ * Records the action as an 'admin_override' transaction.
+ */
+exports.overrideMembership = catchAsync(async (req, res) => {
+  const targetUserId = parseInt(req.params.id);
+  if (!targetUserId || isNaN(targetUserId)) {
+    return res.status(400).json({ error: 'Valid user ID is required' });
+  }
+
+  const { status } = overrideMembershipSchema.parse(req.body);
+
+  const user = await userService.toggleMembership(targetUserId, status);
+
+  // Record the admin override in the audit log
+  const reference = `ADM-${Date.now().toString(36).toUpperCase()}-${req.user.id}`;
+  await userService.recordTransaction(
+    targetUserId,
+    status === 'member' ? 499.00 : 0,
+    'admin_override',
+    reference
+  );
+
+  res.json({ success: true, user, reference });
 });

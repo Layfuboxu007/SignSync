@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { API } from "../../api";
-import { Users, MoreVertical, Shield, GraduationCap, User, Download } from "lucide-react";
+import { Users, Shield, GraduationCap, User, Download, Crown, XCircle, CheckCircle2 } from "lucide-react";
 
 export default function UserManagement() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(null); // userId being toggled
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -24,7 +25,7 @@ export default function UserManagement() {
     if (!users.length) return;
     
     // Create CSV header
-    const headers = ["ID", "First Name", "Last Name", "Email", "Role", "Membership Status", "Joined Date"];
+    const headers = ["ID", "First Name", "Last Name", "Email", "Role", "Membership Status", "Expires At", "Joined Date"];
     
     // Create CSV rows
     const rows = users.map(u => [
@@ -34,6 +35,7 @@ export default function UserManagement() {
       u.email || "",
       u.role || "learner",
       u.membership_status || "free",
+      u.membership_expires_at ? new Date(u.membership_expires_at).toISOString().split('T')[0] : "N/A",
       new Date(u.created_at).toISOString().split('T')[0]
     ]);
     
@@ -55,12 +57,43 @@ export default function UserManagement() {
     document.body.removeChild(link);
   };
 
+  const handleToggleMembership = async (user) => {
+    const newStatus = user.membership_status === 'member' ? 'free' : 'member';
+    const action = newStatus === 'member' ? 'grant membership to' : 'revoke membership from';
+    
+    if (!window.confirm(`Are you sure you want to ${action} ${user.first_name} ${user.last_name} (${user.email})?`)) return;
+
+    setActionLoading(user.id);
+    try {
+      const res = await API.patch(`/admin/users/${user.id}/membership`, { status: newStatus });
+      if (res.data.success) {
+        // Update the local state
+        setUsers(prev => prev.map(u => u.id === user.id ? { ...u, ...res.data.user } : u));
+      }
+    } catch (err) {
+      console.error("Failed to toggle membership", err);
+      alert("Failed to update membership. Please try again.");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const getRoleIcon = (role) => {
     switch (role) {
       case 'admin': return <Shield size={14} color="#ef4444" />; // Red 500
       case 'instructor': return <GraduationCap size={14} color="#d97706" />; // Amber 600
       default: return <User size={14} color="#2563eb" />; // Blue 600
     }
+  };
+
+  const getMembershipBadge = (status) => {
+    const isMember = status === 'member';
+    return {
+      backgroundColor: isMember ? "#ecfdf5" : "#f1f5f9",
+      color: isMember ? "#059669" : "#64748b",
+      border: isMember ? "1px solid #a7f3d0" : "1px solid #e2e8f0",
+      label: isMember ? "Member" : "Free"
+    };
   };
 
   if (loading) return (
@@ -77,7 +110,7 @@ export default function UserManagement() {
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: "32px" }}>
         <div>
           <h1 style={{ fontSize: "28px", color: "#0f172a", marginBottom: "4px", fontWeight: "700" }}>User Directory</h1>
-          <p style={{ color: "#64748b", fontSize: "14px" }}>Manage roles and monitor student progress.</p>
+          <p style={{ color: "#64748b", fontSize: "14px" }}>Manage roles, memberships, and monitor student progress.</p>
         </div>
         <button 
           onClick={handleExportCSV}
@@ -109,58 +142,100 @@ export default function UserManagement() {
               <th style={{ padding: "16px 24px", fontSize: "11px", color: "#64748b", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.05em" }}>Role</th>
               <th style={{ padding: "16px 24px", fontSize: "11px", color: "#64748b", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.05em" }}>Tier</th>
               <th style={{ padding: "16px 24px", fontSize: "11px", color: "#64748b", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.05em" }}>Joined</th>
-              <th style={{ padding: "16px 24px", width: "50px" }}></th>
+              <th style={{ padding: "16px 24px", fontSize: "11px", color: "#64748b", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.05em", textAlign: "center" }}>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {users.map((u, idx) => (
-              <tr 
-                key={u.id} 
-                style={{ 
-                  borderBottom: idx === users.length - 1 ? "none" : "1px solid #f1f5f9", 
-                  transition: "background 200ms ease" 
-                }} 
-                onMouseOver={(e) => { e.currentTarget.style.backgroundColor = "#f8fafc"; }}
-                onMouseOut={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
-              >
-                <td style={{ padding: "16px 24px" }}>
-                  <div style={{ color: "#0f172a", fontSize: "14px", fontWeight: "600", marginBottom: "4px" }}>{u.first_name} {u.last_name}</div>
-                  <div style={{ color: "#64748b", fontSize: "12px", fontFamily: "'Fira Code', monospace" }}>{u.email}</div>
-                </td>
-                <td style={{ padding: "16px 24px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", color: "#334155", textTransform: "capitalize" }}>
-                    {getRoleIcon(u.role)}
-                    {u.role || 'learner'}
-                  </div>
-                </td>
-                <td style={{ padding: "16px 24px" }}>
-                  <span style={{ 
-                    display: "inline-block",
-                    padding: "4px 10px",
-                    borderRadius: "20px",
-                    fontSize: "12px",
-                    fontWeight: "600",
-                    backgroundColor: u.membership_status === 'premium' ? "#fef3c7" : "#f1f5f9",
-                    color: u.membership_status === 'premium' ? "#d97706" : "#64748b",
-                    border: u.membership_status === 'premium' ? "1px solid #fde68a" : "1px solid #e2e8f0",
-                    textTransform: "capitalize"
-                  }}>
-                    {u.membership_status || 'free'}
-                  </span>
-                </td>
-                <td style={{ padding: "16px 24px", fontSize: "14px", color: "#64748b" }}>
-                  {new Date(u.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-                </td>
-                <td style={{ padding: "16px 24px", textAlign: "center" }}>
-                  <button style={{ padding: "8px", background: "transparent", color: "#94a3b8", cursor: "pointer", border: "none", borderRadius: "8px", transition: "all 200ms ease" }}
-                    onMouseOver={(e) => { e.currentTarget.style.color = "#0f172a"; e.currentTarget.style.background = "#f1f5f9"; }}
-                    onMouseOut={(e) => { e.currentTarget.style.color = "#94a3b8"; e.currentTarget.style.background = "transparent"; }}
-                  >
-                    <MoreVertical size={18} />
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {users.map((u, idx) => {
+              const badge = getMembershipBadge(u.membership_status);
+              const isToggling = actionLoading === u.id;
+              const isAdminOrInstructor = u.role === 'admin' || u.role === 'instructor';
+              
+              return (
+                <tr 
+                  key={u.id} 
+                  style={{ 
+                    borderBottom: idx === users.length - 1 ? "none" : "1px solid #f1f5f9", 
+                    transition: "background 200ms ease" 
+                  }} 
+                  onMouseOver={(e) => { e.currentTarget.style.backgroundColor = "#f8fafc"; }}
+                  onMouseOut={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+                >
+                  <td style={{ padding: "16px 24px" }}>
+                    <div style={{ color: "#0f172a", fontSize: "14px", fontWeight: "600", marginBottom: "4px" }}>{u.first_name} {u.last_name}</div>
+                    <div style={{ color: "#64748b", fontSize: "12px", fontFamily: "'Fira Code', monospace" }}>{u.email}</div>
+                  </td>
+                  <td style={{ padding: "16px 24px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", color: "#334155", textTransform: "capitalize" }}>
+                      {getRoleIcon(u.role)}
+                      {u.role || 'learner'}
+                    </div>
+                  </td>
+                  <td style={{ padding: "16px 24px" }}>
+                    <span style={{ 
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      padding: "4px 10px",
+                      borderRadius: "20px",
+                      fontSize: "12px",
+                      fontWeight: "600",
+                      backgroundColor: badge.backgroundColor,
+                      color: badge.color,
+                      border: badge.border,
+                      textTransform: "capitalize"
+                    }}>
+                      {u.membership_status === 'member' && <Crown size={10} />}
+                      {badge.label}
+                    </span>
+                  </td>
+                  <td style={{ padding: "16px 24px", fontSize: "14px", color: "#64748b" }}>
+                    {new Date(u.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                  </td>
+                  <td style={{ padding: "16px 24px", textAlign: "center" }}>
+                    {isAdminOrInstructor ? (
+                      <span style={{ fontSize: "11px", color: "#94a3b8" }}>—</span>
+                    ) : u.membership_status === 'member' ? (
+                      <button 
+                        onClick={() => handleToggleMembership(u)}
+                        disabled={isToggling}
+                        style={{ 
+                          padding: "6px 12px", background: "hsla(0, 84%, 60%, 0.06)", 
+                          color: "#ef4444", cursor: isToggling ? "not-allowed" : "pointer", 
+                          border: "1px solid hsla(0, 84%, 60%, 0.2)", borderRadius: "8px", 
+                          fontSize: "12px", fontWeight: "600", transition: "all 200ms ease",
+                          display: "inline-flex", alignItems: "center", gap: "4px",
+                          opacity: isToggling ? 0.6 : 1
+                        }}
+                        onMouseOver={(e) => { if (!isToggling) { e.currentTarget.style.background = "hsla(0, 84%, 60%, 0.12)"; } }}
+                        onMouseOut={(e) => { e.currentTarget.style.background = "hsla(0, 84%, 60%, 0.06)"; }}
+                      >
+                        <XCircle size={12} />
+                        {isToggling ? "Revoking..." : "Revoke"}
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={() => handleToggleMembership(u)}
+                        disabled={isToggling}
+                        style={{ 
+                          padding: "6px 12px", background: "hsla(160, 84%, 39%, 0.06)", 
+                          color: "#059669", cursor: isToggling ? "not-allowed" : "pointer", 
+                          border: "1px solid hsla(160, 84%, 39%, 0.2)", borderRadius: "8px", 
+                          fontSize: "12px", fontWeight: "600", transition: "all 200ms ease",
+                          display: "inline-flex", alignItems: "center", gap: "4px",
+                          opacity: isToggling ? 0.6 : 1
+                        }}
+                        onMouseOver={(e) => { if (!isToggling) { e.currentTarget.style.background = "hsla(160, 84%, 39%, 0.12)"; } }}
+                        onMouseOut={(e) => { e.currentTarget.style.background = "hsla(160, 84%, 39%, 0.06)"; }}
+                      >
+                        <CheckCircle2 size={12} />
+                        {isToggling ? "Granting..." : "Grant"}
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

@@ -66,15 +66,36 @@ export const useUserStore = create((set, get) => ({
     }
   },
 
+  /**
+   * Upgrade membership to 'member' tier.
+   * Returns { success, reference, expiresAt } on success.
+   */
   upgradeMembership: async () => {
     try {
       const { data } = await API.post('/users/membership', { status: 'member' });
       if (data.success) {
         set({ profile: data.user });
-        return true;
+        return { success: true, reference: data.reference, expiresAt: data.user?.membership_expires_at };
       }
     } catch (error) {
       console.error("Failed to upgrade membership", error);
+      return false;
+    }
+  },
+
+  /**
+   * Cancel (downgrade) membership back to 'free' tier.
+   * Clears membership_expires_at and records a cancellation transaction.
+   */
+  cancelMembership: async () => {
+    try {
+      const { data } = await API.post('/users/cancel-membership');
+      if (data.success) {
+        set({ profile: data.user });
+        return true;
+      }
+    } catch (error) {
+      console.error("Failed to cancel membership", error);
       return false;
     }
   },

@@ -28,11 +28,14 @@ With features like strict confidence gating, automated telemetry, and a comprehe
 ### 👑 For Premium Members
 - **Advanced Modules:** Unlock complex grammatical syntax and medical/emergency ASL vocabulary.
 - **Priority Tracking:** Premium access routing for high-fidelity model inference.
+- **30-Day Membership Cycles:** Memberships are active for 30 days with automatic expiry and self-service renewal.
+- **Self-Service Management:** Members can view their expiry date and cancel at any time from their Profile page.
 
 ### 🛡️ For Administrators & Instructors
 - **Unified Reporting:** Export telemetry logs, user analytics, and transaction histories via CSV, Excel, and PDF.
 - **Interactive Dashboards:** Track global failure rates to identify "difficult modules" that need curriculum adjustments.
-- **User Management:** Full CRUD capabilities over the student base, including role assignments and manual membership overrides.
+- **User Management:** Full CRUD capabilities over the student base, including role assignments and membership overrides (grant/revoke).
+- **Transaction Audit Trail:** Every membership state change (upgrade, cancel, admin override, auto-expiry) is logged in the transactions table with a receipt reference.
 
 ---
 
@@ -64,6 +67,15 @@ SignSync's AI engine is completely client-side to ensure user privacy and reduce
 3. **MediaPipe Inference:** The Worker runs the MediaPipe WASM binaries to extract coordinate data.
 4. **Pedagogical Evaluation:** The `gestureMath.js` utility evaluates the coordinate relationships against predefined heuristic algorithms (e.g., "Is the thumb tucked under the index finger?").
 5. **Telemetry Sync:** Results (successes, failures, intervention triggers) are batched and synced to the Supabase database via the Express API.
+
+### 💳 Membership Architecture
+
+The membership system uses a two-tier model (`free` → `member`) with triple-gate enforcement:
+
+1. **Enrollment Gate:** Server rejects free-tier users from enrolling in Advanced courses (`courseService.enrollUser`).
+2. **Practice Room Re-verification:** On entry, the `verifyEnrollment` middleware re-checks membership status to prevent downgrade bypass.
+3. **Auto-Expiry:** The auth middleware checks `membership_expires_at` on every request and auto-downgrades expired memberships.
+4. **Audit Trail:** Every state change writes to the `transactions` table with a receipt reference.
 
 ---
 
@@ -99,7 +111,14 @@ SUPABASE_SERVICE_ROLE_KEY="your_supabase_service_role_key"
 FRONTEND_URL="http://localhost:5173"
 ```
 
-### 3. Install Dependencies
+### 3. Database Setup
+Run the setup script against your Supabase database:
+```sql
+-- Run supabase_task4_setup.sql for a fresh environment
+-- Run migration.sql + migration_membership_v2.sql for an existing environment
+```
+
+### 4. Install Dependencies
 Install dependencies for both the frontend and the backend.
 
 ```bash
@@ -112,7 +131,7 @@ cd ../server
 npm install
 ```
 
-### 4. Run the Development Servers
+### 5. Run the Development Servers
 Open two terminal windows:
 
 **Terminal 1 (Backend):**

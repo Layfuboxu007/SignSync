@@ -22,6 +22,16 @@ const membershipSchema = z.object({
 });
 
 /**
+ * Generate a mock receipt reference for transaction auditing.
+ * Format: SYN-{timestamp}-{random4}
+ */
+const generateReceiptRef = () => {
+  const ts = Date.now().toString(36).toUpperCase();
+  const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `SYN-${ts}-${rand}`;
+};
+
+/**
  * GET /health — lightweight DB connectivity check.
  * Returns { status: "ok" } without dumping user data.
  */
@@ -67,7 +77,7 @@ exports.serverLogin = catchAsync(async (req, res) => {
   try {
     const { data: dbUser } = await supabase
       .from("users")
-      .select("id, first_name, last_name, username, email, role, membership_status, created_at")
+      .select("id, first_name, last_name, username, email, role, membership_status, membership_expires_at, created_at")
       .eq("email", loginEmail)
       .single();
     profile = dbUser;
@@ -98,8 +108,33 @@ exports.deleteMe = catchAsync(async (req, res) => {
   res.json({ message: "User deleted successfully" });
 });
 
+/**
+ * POST /users/membership — Upgrade or change membership status.
+ * Records a transaction in the audit log with a mock receipt reference.
+ */
 exports.toggleMembership = catchAsync(async (req, res) => {
   const { status } = membershipSchema.parse(req.body);
+  const reference = generateReceiptRef();
+
   const user = await userService.toggleMembership(req.user.id, status);
-  res.json({ success: true, user });
+
+  // Record transaction for audit trail
+  const txType = status === 'member' ? 'membership_upgrade' : 'membership_downgrade';
+  const amount = status === 'member' ? 499.00 : 0;
+  await userService.recordTransaction(req.user.id, amount, txType, reference);
+
+  res.json({ success: true, user, reference });
+});
+
+/**
+ * POST /users/cancel-membership — Self-service membership cancellation.
+ * Downgrades the user to 'free' and records the cancellation.
+ */
+exports.cancelMembership = catchAsync(async (req, res) => {
+  const reference = generateReceiptRef();
+  const user = await userService.toggleMembership(req.user.id, 'free');
+
+  await userService.recordTransaction(req.user.id, 0, 'membership_cancel', reference);
+
+  res.json({ success: true, user, reference });
 });

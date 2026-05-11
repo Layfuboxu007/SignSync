@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useUserStore } from '../../store/userStore';
-import { X, Check, CreditCard, ShieldCheck, Zap, Video } from 'lucide-react';
+import { X, Check, CreditCard, ShieldCheck, Zap, Video, Calendar } from 'lucide-react';
 
 export default function MembershipModal({ isOpen, onClose }) {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [receiptData, setReceiptData] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
   const { upgradeMembership } = useUserStore();
 
@@ -17,18 +18,28 @@ export default function MembershipModal({ isOpen, onClose }) {
     // Simulate payment processing delay for UX realism
     await new Promise(resolve => setTimeout(resolve, 1500));
 
-    const successResponse = await upgradeMembership();
+    const result = await upgradeMembership();
     setLoading(false);
 
-    if (successResponse) {
+    if (result && result.success) {
+      setReceiptData({
+        reference: result.reference,
+        expiresAt: result.expiresAt
+      });
       setSuccess(true);
       setTimeout(() => {
         onClose();
         setSuccess(false);
-      }, 3000);
+        setReceiptData(null);
+      }, 4000);
     } else {
       setErrorMsg("Payment declined or an error occurred. Please try again.");
     }
+  };
+
+  const formatDate = (iso) => {
+    if (!iso) return "N/A";
+    return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   };
 
   return (
@@ -65,12 +76,30 @@ export default function MembershipModal({ isOpen, onClose }) {
         )}
 
         {success ? (
-          <div style={{ padding: '60px 40px', textAlign: 'center' }}>
+          <div style={{ padding: '48px 40px', textAlign: 'center' }}>
             <div style={{ width: '80px', height: '80px', background: '#ecfdf5', color: '#10b981', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
               <Check size={40} strokeWidth={3} />
             </div>
             <h2 style={{ fontSize: '24px', fontWeight: '800', color: '#0f172a', marginBottom: '8px' }}>Payment Successful!</h2>
-            <p style={{ color: '#64748b', fontSize: '15px' }}>Welcome to Premium. All advanced modules are now unlocked.</p>
+            <p style={{ color: '#64748b', fontSize: '15px', marginBottom: '24px' }}>Welcome to Premium. All advanced modules are now unlocked.</p>
+            
+            {/* Receipt & Expiry Info */}
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', textAlign: 'left' }}>
+              {receiptData?.reference && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Receipt</span>
+                  <span style={{ fontSize: '13px', color: '#0f172a', fontWeight: '600', fontFamily: "'Fira Code', monospace" }}>{receiptData.reference}</span>
+                </div>
+              )}
+              {receiptData?.expiresAt && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Active Until</span>
+                  <span style={{ fontSize: '13px', color: '#10b981', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Calendar size={12} /> {formatDate(receiptData.expiresAt)}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
         ) : (
           <>

@@ -4,7 +4,7 @@ import { usePracticeSession, DETECTION_STATES } from "../../hooks/usePracticeSes
 import WebcamCanvas from "../../components/tracker/WebcamCanvas";
 import { DemoLoop } from "../../components/tutorials/DemoLoop";
 import { TutorialModal } from "../../components/tutorials/TutorialModal";
-import { InterventionPanel } from "../../components/tutorials/InterventionPanel";
+import InterventionPanel from "../../components/tutorials/InterventionPanel";
 
 // ── Sub-components ──────────────────────────────────────────
 
