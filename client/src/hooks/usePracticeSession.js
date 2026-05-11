@@ -8,7 +8,7 @@ import { API } from "../api";
 // ── Tuning Constants ────────────────────────────────────────
 const CONSECUTIVE_FRAMES_REQUIRED = 6; // 600ms sustained hold at 100ms interval
 const SCORE_PER_CONFIRMATION = 20;     // 5 confirmed holds = 100% (not 10 lucky twitches)
-const FAILURE_THRESHOLD = 30;          // ~3 seconds of consistent failure before intervention
+
 
 /**
  * Detection states exposed to the UI for contextual feedback.
@@ -69,10 +69,8 @@ export function usePracticeSession() {
 
   // Tutorial state
   const [showIntro, setShowIntro] = useState(false);
-  const [showIntervention, setShowIntervention] = useState(false);
   const failureCountRef = useRef(0);
   const temporalBufferRef = useRef(0);
-  const interventionShownForSignRef = useRef(null); // Cooldown: once per sign
 
   // Derived values
   const targetItem = flatCurriculum[currentIndex] || flatCurriculum[0];
@@ -118,9 +116,8 @@ export function usePracticeSession() {
     }
   }, [targetModule, targetItem.introVideoUrl]);
 
-  // Reset intervention cooldown when advancing to a new sign
+  // Reset counters when advancing to a new sign
   useEffect(() => {
-    interventionShownForSignRef.current = null;
     failureCountRef.current = 0;
     temporalBufferRef.current = 0;
     
@@ -138,10 +135,7 @@ export function usePracticeSession() {
     setShowIntro(false);
   }, [targetModule]);
 
-  const handleResumeFromIntervention = useCallback(() => {
-    setShowIntervention(false);
-    failureCountRef.current = 0;
-  }, []);
+
 
   // ── 1.3: Manual completion for motion signs ───────────────
   const handleMotionSignComplete = useCallback(() => {
@@ -200,8 +194,7 @@ export function usePracticeSession() {
       webcamRef.current.video.readyState === 4 &&
       model && 
       poseModel &&
-      !showIntro && 
-      !showIntervention &&
+      !showIntro &&
       !targetIsMotionSign // Skip detection for motion signs
     ) {
       const video = webcamRef.current.video;
@@ -250,17 +243,7 @@ export function usePracticeSession() {
             setCurrentErrorCode(result.errorCode);
             failureCountRef.current += 1;
             
-            // ── 2.1: Intervention cooldown — once per sign ──
-            if (
-              failureCountRef.current > FAILURE_THRESHOLD && 
-              targetItem.correctionUrl &&
-              interventionShownForSignRef.current !== targetSign
-            ) {
-              setShowIntervention(true);
-              interventionShownForSignRef.current = targetSign;
-              trackEvent('ai_failure', { sign: targetSign, module: targetModule });
-              failureCountRef.current = 0; // Reset after showing
-            }
+
           }
         } else if (!validHandDetected) {
           // ── 1.2: No hand — reset buffer, don't count as failure ──
@@ -283,7 +266,7 @@ export function usePracticeSession() {
         drawMesh([], [], canvasRef.current.getContext("2d"), false);
       }
     }
-  }, [model, poseModel, completed, isAdvancing, targetSign, showIntro, showIntervention, targetItem.correctionUrl, trackEvent, targetModule, targetIsMotionSign]);
+  }, [model, poseModel, completed, isAdvancing, targetSign, showIntro, trackEvent, targetModule, targetIsMotionSign]);
 
   return {
     // Curriculum
@@ -306,9 +289,7 @@ export function usePracticeSession() {
     accessDenied,
     // Tutorial
     showIntro,
-    showIntervention,
     handleIntroComplete,
-    handleResumeFromIntervention,
     // Motion signs
     handleMotionSignComplete,
     // Detection

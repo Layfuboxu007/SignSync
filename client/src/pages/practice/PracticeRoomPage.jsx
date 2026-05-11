@@ -4,7 +4,7 @@ import { usePracticeSession, DETECTION_STATES } from "../../hooks/usePracticeSes
 import WebcamCanvas from "../../components/tracker/WebcamCanvas";
 import { DemoLoop } from "../../components/tutorials/DemoLoop";
 import { TutorialModal } from "../../components/tutorials/TutorialModal";
-import InterventionPanel from "../../components/tutorials/InterventionPanel";
+
 
 // ── Sub-components ──────────────────────────────────────────
 
@@ -146,7 +146,7 @@ export default function PracticeRoomPage() {
     flatCurriculum, currentIndex, targetItem, targetSign, targetModule, targetIsMotionSign,
     gestureStatus, detectionState, currentErrorCode, score, completed, modelLoading, modelError, model, poseModel,
     accessDenied,
-    showIntro, showIntervention, handleIntroComplete, handleResumeFromIntervention,
+    showIntro, handleIntroComplete,
     handleMotionSignComplete,
     detect,
     CONSECUTIVE_FRAMES_REQUIRED,
@@ -215,13 +215,6 @@ export default function PracticeRoomPage() {
            ) : (
              <>
                <WebcamCanvas loading={modelLoading} onFrameProcessed={handleFrameProcessed} />
-               {showIntervention && targetItem.correctionUrl && (
-                 <InterventionPanel 
-                    videoUrl={targetItem.correctionUrl}
-                    signName={targetSign}
-                    onResume={handleResumeFromIntervention}
-                 />
-               )}
              </>
            )}
          </div>
