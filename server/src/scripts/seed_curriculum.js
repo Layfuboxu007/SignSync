@@ -50,7 +50,7 @@ const baseCourseUpdates = [
     ]
   },
   {
-    title: 'Healthcare: ER Triage',
+    title: 'Medical Signs',
     gestures: [
       { module: 'Module 1: Personnel & Places', signs: ['Medical', 'Hospital', "Doctor's office", 'Doctor', 'Nurse'] },
       { module: 'Module 2: Body Parts', signs: ['Legs', 'Feet', 'Head', 'Eyes', 'Ears', 'Nose', 'Mouth', 'Tonsils'] },
@@ -60,7 +60,7 @@ const baseCourseUpdates = [
     ]
   },
   {
-    title: 'Healthcare: Consent',
+    title: 'Healthcare Signs',
     gestures: [
       { module: 'Module 1: Jobs & Transport', signs: ['Doctor', 'Nurse', 'EMT', 'Paramedic', 'Ambulance', 'Interpreter'] },
       { module: 'Module 2: Locations', signs: ['Hospital', 'Clinic', 'ER', 'Waiting room', 'Elevator', 'Cafeteria', 'Pharmacy', 'Gift shop', 'Room', 'Floor'] },
@@ -77,10 +77,15 @@ const baseCourseUpdates = [
 // Transform the generic strings into the new rich JSON structure with video URLs
 const courseUpdates = baseCourseUpdates.map(course => ({
   title: course.title,
-  gestures: course.gestures.map(mod => ({
-    module: mod.module,
-    introVideoUrl: 'https://cdn.signsync.app/videos/intro_placeholder.mp4',
-    signs: mod.signs.map(sign => {
+  gestures: course.gestures.map(mod => {
+    let introUrl = 'https://cdn.signsync.app/videos/intro_placeholder.mp4';
+    if (course.title === 'Medical Signs') introUrl = '/videos/intro_medical_signs.mp4';
+    if (course.title === 'Healthcare Signs') introUrl = '/videos/intro_healthcare_signs.mp4';
+    
+    return {
+      module: mod.module,
+      introVideoUrl: introUrl,
+      signs: mod.signs.map(sign => {
       const sanitizedName = sign.toLowerCase().replace(/[^a-z0-9]/g, '_');
       return {
         name: sign,
@@ -88,7 +93,8 @@ const courseUpdates = baseCourseUpdates.map(course => ({
         correctionUrl: `https://cdn.signsync.app/videos/correction_${sanitizedName}.mp4`
       };
     })
-  }))
+  };
+  })
 }));
 
 async function seedCurriculum() {
