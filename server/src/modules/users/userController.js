@@ -3,6 +3,8 @@ const userService = require("./userService");
 const catchAsync = require("../../utils/catchAsync");
 const { supabase } = require("../../config/db");
 
+const BUILD_VERSION = "v2-fix-20260512";
+
 // Validation schemas
 const loginSchema = z.object({
   identifier: z.string().min(1),
@@ -38,7 +40,7 @@ const generateReceiptRef = () => {
 exports.healthCheck = catchAsync(async (req, res) => {
   const { error } = await supabase.from("users").select("id").limit(1);
   if (error) throw error;
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
+  res.json({ status: "ok", version: BUILD_VERSION, timestamp: new Date().toISOString() });
 });
 
 /**
