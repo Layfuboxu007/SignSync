@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS public.transactions (
 INSERT INTO public.courses (title, difficulty, modules, duration, icon, color, "desc", gestures)
 VALUES 
 ('AI Real-Time: Alphabet Basics', 'Beginner', 5, '2 Hours', '🤖', '#14b8a6', 'Use your camera to get instant AI corrections. This module tests your ability to accurately sign A, B, and V.', '["A", "B", "C", "D", "E"]'::jsonb),
-('Visual Tracking: Speed', 'Intermediate', 8, '3.5 Hours', '🔥', '#f59e0b', 'Analyze your motion flow and speed using our proprietary visual heatmap tracking tech.', '["A", "B", "V", "W", "X"]'::jsonb),
+
 ('Contextual: Daily Life', 'Beginner', 4, '1.5 Hours', '🛒', '#3b82f6', 'Master situational awareness and practical signs for grocery shopping and traveling.', '["A", "E", "I", "O", "U"]'::jsonb),
 ('Healthcare: ER Triage', 'Advanced', 10, '5 Hours', '⚕️', '#ef4444', 'Bridging the gap in medical settings. Ensure clear, accurate communication when it matters most.', '["F", "G", "H", "P", "Q"]'::jsonb),
 ('Healthcare: Consent', 'Advanced', 12, '6 Hours', '🏥', '#ec4899', 'Accurate ASL communication tailored for medical consent and complicated procedures.', '["F", "G", "H", "P", "Q"]'::jsonb);

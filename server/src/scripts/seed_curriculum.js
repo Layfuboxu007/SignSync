@@ -32,15 +32,6 @@ const baseCourseUpdates = [
     ]
   },
   {
-    title: 'Visual Tracking: Speed',
-    gestures: [
-      { module: 'Module 1: Rubber Band', signs: ['REST', 'UP', 'REST', 'DOWN'] },
-      { module: 'Module 2: Vowel Bouncing', signs: ['A-E-A', 'O-I-O', 'U-E-U'] },
-      { module: 'Module 3: Double Letters', signs: ['L-L', 'E-E', 'T-T', 'S-S'] },
-      { module: 'Module 4: Speed Run', signs: ['HELLO', 'WORLD', 'FAST', 'SLOW'] }
-    ]
-  },
-  {
     title: 'Contextual: Daily Life',
     gestures: [
       { module: 'Module 1: Greetings', signs: ['Hello', 'Please', 'Thank You', 'Sorry'] },

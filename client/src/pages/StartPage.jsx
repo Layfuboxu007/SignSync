@@ -38,14 +38,6 @@ function StartPage() {
       title: "Medical & Clinical",
       desc: "Master specialized healthcare vocabulary and patient triage terminology.",
       color: "#ec4899"
-    },
-    {
-      id: "speed",
-      icon: <Zap size={32} strokeWidth={1.5} />,
-      title: "Fluency & Speed",
-      desc: "Use AI visual heatmaps to analyze your hand motion and signing speed.",
-      color: "#f59e0b"
-    }
   ];
 
   return (
