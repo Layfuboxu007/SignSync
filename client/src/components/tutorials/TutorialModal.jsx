@@ -8,9 +8,12 @@ export function TutorialModal({ videoUrl, title, onComplete }) {
     // Prevent scrolling behind modal
     document.body.style.overflow = 'hidden';
     
-    // Reset video state when modal opens
-    if (videoRef.current) {
-      videoRef.current.currentTime = 0;
+    // Restore video state when modal opens
+    if (videoRef.current && videoUrl) {
+      const key = `signsync_video_progress_${videoUrl.replace(/[^a-zA-Z0-9]/g, '_')}`;
+      const savedTime = localStorage.getItem(key);
+      
+      videoRef.current.currentTime = savedTime ? parseFloat(savedTime) : 0;
       videoRef.current.muted = false;
       // Attempt to autoplay with sound
       const playPromise = videoRef.current.play();
@@ -63,6 +66,12 @@ export function TutorialModal({ videoUrl, title, onComplete }) {
             src={videoUrl} 
             controls 
             playsInline
+            onTimeUpdate={(e) => {
+              if (videoUrl) {
+                const key = `signsync_video_progress_${videoUrl.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                localStorage.setItem(key, e.target.currentTime);
+              }
+            }}
             style={{ width: "100%", height: "100%", objectFit: "contain" }}
           />
         </div>

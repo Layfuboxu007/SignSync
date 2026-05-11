@@ -202,7 +202,7 @@ export default function PracticeRoomPage() {
           </div>
           {targetItem.introVideoUrl && (
              <button className="secondary" style={{ padding: "var(--space-2) var(--space-4)" }} onClick={handleReplayIntro}>
-               Replay Intro
+               View Tutorial
              </button>
           )}
         </div>
