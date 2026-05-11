@@ -24,20 +24,21 @@ const baseCourseUpdates = [
   {
     title: 'AI Real-Time: Alphabet Basics',
     gestures: [
-      { module: 'Module 1: The Anchors', signs: ['A', 'E', 'I', 'O', 'U', 'S', 'T'] },
-      { module: 'Module 2: The Open Hand', signs: ['B', 'C', 'D', 'F', 'K', 'V', 'W'] },
-      { module: 'Module 3: Directionals', signs: ['G', 'H', 'J', 'P', 'Q', 'Z'] },
-      { module: 'Module 4: Complex Spells', signs: ['L', 'M', 'N', 'R', 'X', 'Y'] },
-      { module: 'Module 5: Mastery', signs: ['CAT', 'DOG', 'YES', 'NO', 'HELP'] }
+      { module: 'Module 1: A through F', signs: ['A', 'B', 'C', 'D', 'E', 'F'] },
+      { module: 'Module 2: G through L', signs: ['G', 'H', 'I', 'J', 'K', 'L'] },
+      { module: 'Module 3: M through S', signs: ['M', 'N', 'O', 'P', 'Q', 'R', 'S'] },
+      { module: 'Module 4: T through Z', signs: ['T', 'U', 'V', 'W', 'X', 'Y', 'Z'] }
     ]
   },
   {
     title: 'Contextual: Daily Life',
     gestures: [
-      { module: 'Module 1: Greetings', signs: ['Hello', 'Please', 'Thank You', 'Sorry'] },
-      { module: 'Module 2: People', signs: ['I', 'You', 'Mother', 'Father', 'Friend'] },
-      { module: 'Module 3: Time', signs: ['Today', 'Tomorrow', 'Now', 'Later'] },
-      { module: 'Module 4: Food', signs: ['Eat', 'Drink', 'Water', 'Buy'] }
+      { module: 'Module 1: Greetings & Basics', signs: ['Hello', "What's up", 'How', 'You', 'Me', 'Name'] },
+      { module: 'Module 2: Time of Day', signs: ['Morning', 'Afternoon', 'Night'] },
+      { module: 'Module 3: Feelings & States', signs: ['Good', 'Fine', 'So-so', 'Tired', 'Excited', 'Happy'] },
+      { module: 'Module 4: Identity & Learning', signs: ['Deaf', 'Hard of hearing', 'Hearing', 'Learn', 'ASL'] },
+      { module: 'Module 5: Conversational Tools', signs: ['Again', 'Please', 'Slow', 'Sign', 'What', 'Yes', 'Not'] },
+      { module: 'Module 6: Closing', signs: ['Thank you', 'Take care', 'Goodbye'] }
     ]
   },
   {
@@ -72,6 +73,8 @@ const courseUpdates = baseCourseUpdates.map(course => ({
     let introUrl = 'https://cdn.signsync.app/videos/intro_placeholder.mp4';
     if (course.title === 'Medical Signs') introUrl = '/videos/intro_medical_signs.mp4';
     if (course.title === 'Healthcare Signs') introUrl = '/videos/intro_healthcare_signs.mp4';
+    if (course.title === 'Contextual: Daily Life') introUrl = '/videos/intro_daily_life.mp4';
+    if (course.title === 'AI Real-Time: Alphabet Basics') introUrl = '/videos/intro_alphabet_basics.mp4';
     
     return {
       module: mod.module,
