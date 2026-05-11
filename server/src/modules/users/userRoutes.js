@@ -13,28 +13,25 @@ router.get("/diag", async (req, res) => {
   const { supabase } = require("../../config/db");
   const checks = {};
   try {
-    // Check users table columns
-    const { data: u, error: ue } = await supabase.from('users').select('id, membership_status').limit(1);
-    checks.users_base = ue ? `ERR: ${ue.message}` : 'OK';
+    const email = req.query.email || "jandeeeb@gmail.com";
+    
+    // Check if user exists by email
+    const { data: byEmail, error: e1 } = await supabase.from('users').select('id, email, username, role, membership_status').eq('email', email).maybeSingle();
+    checks.user_by_email = byEmail || (e1 ? `ERR: ${e1.message}` : 'NOT FOUND');
 
-    const { data: u2, error: ue2 } = await supabase.from('users').select('id, membership_expires_at').limit(1);
-    checks.users_expires_at = ue2 ? `ERR: ${ue2.message}` : 'OK';
+    // Check if username 'jandib' exists
+    const { data: byUsername, error: e2 } = await supabase.from('users').select('id, email, username').eq('username', 'jandib').maybeSingle();
+    checks.user_by_username_jandib = byUsername || (e2 ? `ERR: ${e2.message}` : 'NOT FOUND');
 
-    // Check transactions table
-    const { data: t, error: te } = await supabase.from('transactions').select('id').limit(1);
-    checks.transactions_base = te ? `ERR: ${te.message}` : 'OK';
-
-    const { data: t2, error: te2 } = await supabase.from('transactions').select('id, transaction_type, reference').limit(1);
-    checks.transactions_audit = te2 ? `ERR: ${te2.message}` : 'OK';
-
-    // Check Zod
-    const z = require("zod");
-    checks.zod_import = typeof z.object === 'function' ? 'OK' : `FAIL: z.object is ${typeof z.object}`;
+    // List all users (limited)
+    const { data: allUsers, error: e3 } = await supabase.from('users').select('id, email, username, role').limit(20);
+    checks.all_users = allUsers || (e3 ? `ERR: ${e3.message}` : []);
+    checks.total_users = allUsers ? allUsers.length : 0;
 
     checks.deploy_time = new Date().toISOString();
     res.json({ success: true, checks });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message, stack: err.stack, checks });
+    res.status(500).json({ success: false, error: err.message, checks });
   }
 });
 
