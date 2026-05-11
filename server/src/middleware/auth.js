@@ -13,62 +13,46 @@ const authenticateToken = async (req, res, next) => {
       return res.status(403).json({ error: "Invalid token" });
     }
 
-    // Fetch the numeric ID, membership status, and expiry from the public users table.
-    // Try with membership_expires_at first; fall back without it if the column doesn't exist yet.
+    // Fetch the user from our public users table.
+    // Use maybeSingle() to avoid PGRST116 errors when the user doesn't exist yet.
     let dbUser = null;
-    let { data: fullUser, error: selectError } = await supabase
+    const { data: foundUser } = await supabase
       .from('users')
       .select('id, role, membership_status, membership_expires_at')
       .eq('email', user.email)
-      .single();
+      .maybeSingle();
 
-    if (selectError && selectError.message && selectError.message.includes('membership_expires_at')) {
-      // Column doesn't exist yet — fall back to the base columns
-      const { data: baseUser } = await supabase
-        .from('users')
-        .select('id, role, membership_status')
-        .eq('email', user.email)
-        .single();
-      dbUser = baseUser ? { ...baseUser, membership_expires_at: null } : null;
-    } else if (selectError && selectError.code === 'PGRST116') {
-      // PGRST116 = "JSON object requested, multiple (or no) rows returned" 
-      // This means the user doesn't exist in our table yet — let dbUser remain null
-      dbUser = null;
-    } else {
-      dbUser = fullUser;
-    }
+    dbUser = foundUser;
 
     // If the user exists in Supabase Auth but not in our public users table,
     // auto-create the row so login doesn't break.
     if (!dbUser) {
       const meta = user.user_metadata || {};
-      const insertPayload = {
-        first_name: meta.first_name || meta.firstName || '',
-        last_name: meta.last_name || meta.lastName || '',
-        username: meta.username || user.email.split('@')[0],
-        role: meta.role || 'learner',
-        email: user.email,
-        password_hash: 'supabase-auth',
-        membership_status: 'free'
-      };
-
       const { data: newUser, error: insertError } = await supabase
         .from('users')
-        .insert(insertPayload)
-        .select('id, role, membership_status')
+        .insert({
+          first_name: meta.first_name || meta.firstName || '',
+          last_name: meta.last_name || meta.lastName || '',
+          username: meta.username || user.email.split('@')[0],
+          role: meta.role || 'learner',
+          email: user.email,
+          password_hash: 'supabase-auth',
+          membership_status: 'free'
+        })
+        .select('id, role, membership_status, membership_expires_at')
         .maybeSingle();
       
       if (insertError) {
-        console.error("Auto-create user failed:", insertError);
-        // The user might already exist — try fetching again with base columns
+        console.error("Auto-create user failed:", insertError.message);
+        // User likely already exists (unique constraint) — retry fetch
         const { data: retryUser } = await supabase
           .from('users')
-          .select('id, role, membership_status')
+          .select('id, role, membership_status, membership_expires_at')
           .eq('email', user.email)
           .maybeSingle();
-        dbUser = retryUser ? { ...retryUser, membership_expires_at: null } : null;
+        dbUser = retryUser;
       } else {
-        dbUser = newUser ? { ...newUser, membership_expires_at: null } : null;
+        dbUser = newUser;
       }
     }
 
@@ -88,14 +72,13 @@ const authenticateToken = async (req, res, next) => {
         dbUser.membership_status = 'free';
         dbUser.membership_expires_at = null;
 
-        // Record the auto-expiry as a transaction for audit trail
         await supabase.from('transactions').insert({
           user_id: dbUser.id,
           amount: 0,
           payment_status: 'completed',
           transaction_type: 'auto_expiry',
           reference: `EXP-${Date.now()}`
-        }).catch(() => {}); // Non-blocking audit log
+        }).catch(() => {});
       }
     }
 
@@ -111,8 +94,7 @@ const authenticateToken = async (req, res, next) => {
     console.error("[Auth Middleware] Unhandled crash:", err);
     return res.status(500).json({ 
       error: "Authentication failed", 
-      debug: err.message,
-      stack: err.stack 
+      debug: err.message 
     });
   }
 };
