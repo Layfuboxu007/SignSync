@@ -99,8 +99,17 @@ exports.syncUser = catchAsync(async (req, res) => {
 });
 
 exports.getMe = catchAsync(async (req, res) => {
-  const user = await userService.getUserProfile(req.user.id);
-  res.json(user);
+  try {
+    const user = await userService.getUserProfile(req.user.id);
+    res.json(user);
+  } catch (err) {
+    // Return debug info so we can see exactly what's wrong
+    res.status(500).json({ 
+      error: err.message, 
+      debug_req_user: req.user,
+      debug_id_type: typeof req.user?.id
+    });
+  }
 });
 
 exports.deleteMe = catchAsync(async (req, res) => {
