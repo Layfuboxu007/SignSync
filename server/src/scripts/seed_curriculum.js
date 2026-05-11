@@ -89,8 +89,8 @@ const courseUpdates = baseCourseUpdates.map(course => ({
       const sanitizedName = sign.toLowerCase().replace(/[^a-z0-9]/g, '_');
       return {
         name: sign,
-        demoUrl: `https://cdn.signsync.app/videos/demo_${sanitizedName}.mp4`,
-        correctionUrl: `https://cdn.signsync.app/videos/correction_${sanitizedName}.mp4`
+        demoUrl: introUrl,
+        correctionUrl: introUrl
       };
     })
   };
