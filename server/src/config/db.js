@@ -4,7 +4,7 @@ require("dotenv").config();
 // Primary client — used for DB queries (service role, bypasses RLS)
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY
 );
 
 // Separate client for auth verification ONLY.
