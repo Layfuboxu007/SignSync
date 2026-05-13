@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useCallback, useState } from "react";
 import Webcam from "react-webcam";
+import { lerpHandPredictions } from "../../utils/landmarkSmoother";
 
 const currentPoints = {
   thumb: [0, 1, 2, 3, 4],
@@ -22,9 +23,22 @@ export default function WebcamCanvas({ loading, onFrameProcessed }) {
   const canvasRef = useRef(null);
   const [cameraError, setCameraError] = useState(null);
 
-  // Expose the refs and draw functions so the parent can manage the detection loop
-  // without this component holding the business logic.
-  const drawMesh = useCallback((handPredictions, posePredictions, ctx, isValidMatch = false) => {
+  // ── Interpolation state ─────────────────────────────────
+  // Store previous + current detection results for lerp rendering
+  const interpRef = useRef({
+    prevHands: [],
+    targetHands: [],
+    prevPoses: [],
+    targetPoses: [],
+    prevMatch: false,
+    targetMatch: false,
+    lastDetectTime: 0,
+    detectInterval: 100, // expected ms between detections
+  });
+  const rafRef = useRef(null);
+
+  // Paint function — draws the mesh at the given interpolation state
+  const paint = useCallback((handPredictions, posePredictions, ctx, isValidMatch = false) => {
     ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
     
     // 1. Draw Upper Body Pose Mesh
@@ -94,6 +108,48 @@ export default function WebcamCanvas({ loading, onFrameProcessed }) {
     }
   }, []);
 
+  // ── 60 fps render loop with interpolation ───────────────
+  useEffect(() => {
+    let running = true;
+
+    const renderLoop = () => {
+      if (!running || !canvasRef.current) return;
+      const ctx = canvasRef.current.getContext("2d");
+      const ip = interpRef.current;
+
+      if (ip.targetHands.length > 0 || ip.targetPoses.length > 0) {
+        const elapsed = performance.now() - ip.lastDetectTime;
+        const t = Math.min(1, elapsed / ip.detectInterval);
+
+        // Interpolate hand landmarks between previous and target
+        const lerpedHands = lerpHandPredictions(ip.prevHands, ip.targetHands, t);
+        paint(lerpedHands, ip.targetPoses, ctx, ip.targetMatch);
+      }
+
+      rafRef.current = requestAnimationFrame(renderLoop);
+    };
+
+    rafRef.current = requestAnimationFrame(renderLoop);
+
+    return () => {
+      running = false;
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [paint]);
+
+  // drawMesh is now a "data setter" — pushes new detection targets
+  // into the interpolation ref. The rAF loop handles actual rendering.
+  const drawMesh = useCallback((handPredictions, posePredictions, _ctx, isValidMatch = false) => {
+    const ip = interpRef.current;
+    ip.prevHands = ip.targetHands.length > 0 ? ip.targetHands : handPredictions;
+    ip.targetHands = handPredictions;
+    ip.prevPoses = ip.targetPoses;
+    ip.targetPoses = posePredictions;
+    ip.targetMatch = isValidMatch;
+    ip.lastDetectTime = performance.now();
+  }, []);
+
+  // Expose the refs and draw functions so the parent can manage the detection loop
   useEffect(() => {
     if (onFrameProcessed) {
       onFrameProcessed(webcamRef, canvasRef, drawMesh);

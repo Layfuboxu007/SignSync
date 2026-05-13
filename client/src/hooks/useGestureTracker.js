@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { LandmarkSmoother } from "../utils/landmarkSmoother";
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 2000; // Exponential: 2s, 4s, 8s
@@ -17,6 +18,9 @@ export function useGestureTracker() {
     let handsInstance = null;
     let poseInstance = null;
     let cancelled = false;
+
+    // Persistent smoother — survives across frames, reset on unmount
+    const handSmoother = new LandmarkSmoother(0.4);
 
     const initModels = async (attempt = 1) => {
       try {
@@ -53,7 +57,10 @@ export function useGestureTracker() {
                   landmarks: lm.map(pt => [pt.x * w, pt.y * h, pt.z || 0]),
                   score: results.multiHandedness && results.multiHandedness[idx] ? results.multiHandedness[idx].score : undefined
                 })) : [];
-                resolve(formatted);
+
+                // ── Apply EMA smoothing for jitter-free landmarks ──
+                const smoothed = handSmoother.smoothMulti(formatted);
+                resolve(smoothed);
               });
               await handsInstance.send({ image: video });
             });
@@ -139,6 +146,7 @@ export function useGestureTracker() {
 
     return () => {
       cancelled = true;
+      handSmoother.reset();
       if (handsInstance) handsInstance.close();
       if (poseInstance) poseInstance.close();
     };
