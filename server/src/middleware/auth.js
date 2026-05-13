@@ -3,22 +3,23 @@ const { supabase, supabaseAuth } = require("../config/db");
 const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
-  
+
   if (!token) return res.status(401).json({ error: "Access denied" });
-  
-  // Use the SEPARATE auth client for token verification
-  // to prevent polluting the primary DB client's auth state.
+
   const { data: { user }, error } = await supabaseAuth.auth.getUser(token);
-  
+
   if (error || !user) {
     return res.status(403).json({ error: "Invalid token" });
   }
 
-  // Use the PRIMARY client (service role) for DB queries — always bypasses RLS
-  let { data: dbUser } = await supabase.from('users').select('id, role, membership_status, membership_expires_at').eq('email', user.email).single();
+  // FIXED: Also select auth_id so we can use it for updates
+  let { data: dbUser } = await supabase
+    .from('users')
+    .select('id, auth_id, role, membership_status, membership_expires_at')
+    .eq('email', user.email)
+    .single();
 
-  // If the user exists in Supabase Auth but not in our public users table,
-  // auto-create the row so login doesn't break.
+  // Auto-create user if not exists
   if (!dbUser) {
     const meta = user.user_metadata || {};
     const { data: newUser, error: insertError } = await supabase.from('users').insert({
@@ -27,13 +28,13 @@ const authenticateToken = async (req, res, next) => {
       username: meta.username || user.email.split('@')[0],
       role: meta.role || 'learner',
       email: user.email,
+      auth_id: user.id,  // ← Store the Supabase UUID
       password_hash: 'supabase-auth',
       membership_status: 'free'
-    }).select('id, role, membership_status, membership_expires_at').maybeSingle();
-    
+    }).select('id, auth_id, role, membership_status, membership_expires_at').maybeSingle();
+
     if (insertError) {
       console.error("Auto-create user failed:", insertError);
-      // Username conflict — retry with unique suffix
       const uniqueUsername = `${(meta.username || user.email.split('@')[0])}_${Date.now().toString(36).slice(-4)}`;
       const { data: retryUser } = await supabase.from('users').insert({
         first_name: meta.first_name || meta.firstName || '',
@@ -41,24 +42,22 @@ const authenticateToken = async (req, res, next) => {
         username: uniqueUsername,
         role: meta.role || 'learner',
         email: user.email,
+        auth_id: user.id,  // ← Store the Supabase UUID
         password_hash: 'supabase-auth',
         membership_status: 'free'
-      }).select('id, role, membership_status, membership_expires_at').maybeSingle();
+      }).select('id, auth_id, role, membership_status, membership_expires_at').maybeSingle();
       dbUser = retryUser;
     } else {
       dbUser = newUser;
     }
   }
 
-  // If we still don't have a dbUser after auto-create attempts,
-  // we cannot proceed — the Supabase Auth user.id is a UUID but
-  // our users.id column is bigint, so using it would crash with 22P02.
   if (!dbUser) {
     console.error(`[Auth] No DB user found/created for email: ${user.email}`);
     return res.status(500).json({ error: "Account setup failed. Please try again." });
   }
 
-  // ── Auto-expiry enforcement ──────────────────────────────
+  // FIXED: Use auth_id for updates
   if (
     dbUser.membership_status === 'member' &&
     dbUser.membership_expires_at &&
@@ -67,23 +66,23 @@ const authenticateToken = async (req, res, next) => {
     await supabase
       .from('users')
       .update({ membership_status: 'free', membership_expires_at: null })
-      .eq('id', dbUser.id);
+      .eq('auth_id', user.id);  // ← FIXED: use UUID, not bigint
 
     dbUser.membership_status = 'free';
     dbUser.membership_expires_at = null;
 
-    // Audit trail (non-blocking)
     await supabase.from('transactions').insert({
-      user_id: dbUser.id,
+      user_id: dbUser.id,  // Keep bigint for transactions if that's the column type
       amount: 0,
       payment_status: 'completed',
       transaction_type: 'auto_expiry',
       reference: `EXP-${Date.now()}`
-    }).catch(() => {});
+    }).catch(() => { });
   }
 
+  // FIXED: req.user.id is now the Supabase UUID
   req.user = {
-    id: dbUser.id,
+    id: user.id,  // ← FIXED: Supabase UUID
     email: user.email,
     role: dbUser.role,
     membership_status: dbUser.membership_status,
