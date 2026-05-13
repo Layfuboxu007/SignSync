@@ -26,7 +26,7 @@ const supabase = createClient(
 // instead of the service role key.
 const supabaseAuth = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY,
+  process.env.SUPABASE_ANON_KEY,  // ← MUST be the anon key, not service role
   serverAuthOptions
 );
 
