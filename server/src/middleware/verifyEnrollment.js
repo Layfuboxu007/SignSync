@@ -1,20 +1,34 @@
 const { supabase } = require('../config/db');
 
+// Helper: resolve UUID to bigint id
+const resolveUserId = async (authId) => {
+  if (!authId) return null;
+  if (!isNaN(authId)) return parseInt(authId);
+
+  const { data } = await supabase
+    .from('users')
+    .select('id')
+    .eq('auth_id', authId)
+    .maybeSingle();
+
+  return data ? data.id : null;
+};
+
 /**
  * Middleware to verify a user still has valid access to a course.
- * Checks enrollment status AND membership tier for Advanced courses.
- * Use on Practice Room entry to prevent membership bypass.
  */
 const verifyEnrollment = async (req, res, next) => {
   const courseId = req.params.id || req.body.courseId;
   if (!courseId) return res.status(400).json({ access: false, reason: "Course ID required" });
 
   try {
+    const realUserId = await resolveUserId(req.user.id);
+
     // Check enrollment exists
     const { data: enrollment, error: enrError } = await supabase
       .from('enrollments')
       .select('status')
-      .eq('user_id', req.user.id)
+      .eq('user_id', realUserId)
       .eq('course_id', courseId)
       .maybeSingle();
 
@@ -37,13 +51,12 @@ const verifyEnrollment = async (req, res, next) => {
     const isFreeCourse = freeTiers.includes((course.difficulty || '').toLowerCase());
 
     if (!isFreeCourse && req.user.membership_status !== 'member') {
-      return res.status(403).json({ 
-        access: false, 
-        reason: "This is an advanced course. Your membership has expired. Please renew to continue." 
+      return res.status(403).json({
+        access: false,
+        reason: "This is an advanced course. Your membership has expired. Please renew to continue."
       });
     }
 
-    // Access granted
     req.course = course;
     req.enrollment = enrollment;
     next();
