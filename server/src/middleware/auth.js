@@ -50,9 +50,16 @@ const authenticateToken = async (req, res, next) => {
     }
   }
 
+  // If we still don't have a dbUser after auto-create attempts,
+  // we cannot proceed — the Supabase Auth user.id is a UUID but
+  // our users.id column is bigint, so using it would crash with 22P02.
+  if (!dbUser) {
+    console.error(`[Auth] No DB user found/created for email: ${user.email}`);
+    return res.status(500).json({ error: "Account setup failed. Please try again." });
+  }
+
   // ── Auto-expiry enforcement ──────────────────────────────
   if (
-    dbUser &&
     dbUser.membership_status === 'member' &&
     dbUser.membership_expires_at &&
     new Date(dbUser.membership_expires_at) < new Date()
@@ -76,11 +83,11 @@ const authenticateToken = async (req, res, next) => {
   }
 
   req.user = {
-    id: dbUser ? dbUser.id : user.id,
+    id: dbUser.id,
     email: user.email,
-    role: dbUser ? dbUser.role : (user.user_metadata?.role || "learner"),
-    membership_status: dbUser ? dbUser.membership_status : "free",
-    membership_expires_at: dbUser ? dbUser.membership_expires_at : null
+    role: dbUser.role,
+    membership_status: dbUser.membership_status,
+    membership_expires_at: dbUser.membership_expires_at
   };
   next();
 };

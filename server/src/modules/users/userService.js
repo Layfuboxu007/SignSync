@@ -15,14 +15,17 @@ exports.lookupEmail = async (username) => {
 const ALLOWED_REGISTRATION_ROLES = ["learner", "instructor"];
 
 exports.syncUser = async (userData) => {
-  // CRITICAL: Never allow self-assignment to admin/privileged roles via registration
   const safeRole = ALLOWED_REGISTRATION_ROLES.includes(userData.role)
     ? userData.role
     : "learner";
 
-  // Check if user already exists
-  const { data: existing } = await supabase.from("users").select("id").eq("email", userData.email).maybeSingle();
-  if (existing) return true;
+  const { data: existing } = await supabase.from("users").select("id, auth_id").eq("email", userData.email).maybeSingle();
+  if (existing) {
+    if (userData.authId && !existing.auth_id) {
+      await supabase.from("users").update({ auth_id: userData.authId }).eq("id", existing.id);
+    }
+    return true;
+  }
 
   const { error } = await supabase.from("users").insert({
     first_name: userData.firstName,
@@ -30,6 +33,7 @@ exports.syncUser = async (userData) => {
     username: userData.username,
     role: safeRole,
     email: userData.email,
+    auth_id: userData.authId || null,
     password_hash: "supabase-auth",
     membership_status: "free"
   });
@@ -41,7 +45,7 @@ exports.getUserProfile = async (userId) => {
   const { data: user, error } = await supabase
     .from("users")
     .select("id, first_name, last_name, username, email, role, membership_status, membership_expires_at, created_at")
-    .eq("id", userId)
+    .eq("auth_id", userId)
     .maybeSingle();
 
   if (error) throw new Error(`Profile query failed: ${error.message}`);
@@ -50,16 +54,11 @@ exports.getUserProfile = async (userId) => {
 };
 
 exports.deleteUser = async (userId) => {
-  const { error } = await supabase.from("users").delete().eq("id", userId);
+  const { error } = await supabase.from("users").delete().eq("auth_id", userId);
   if (error) throw error;
   return true;
 };
 
-/**
- * Toggle membership status for a user.
- * When upgrading to 'member', sets a 30-day expiry.
- * When downgrading to 'free', clears the expiry.
- */
 exports.toggleMembership = async (userId, newStatus) => {
   const updatePayload = { membership_status: newStatus };
 
@@ -74,7 +73,7 @@ exports.toggleMembership = async (userId, newStatus) => {
   const { data, error } = await supabase
     .from("users")
     .update(updatePayload)
-    .eq("id", userId)
+    .eq("auth_id", userId)
     .select("id, first_name, last_name, username, email, role, membership_status, membership_expires_at, created_at")
     .maybeSingle();
 
@@ -83,12 +82,17 @@ exports.toggleMembership = async (userId, newStatus) => {
   return data;
 };
 
-/**
- * Record a transaction in the audit log.
- */
 exports.recordTransaction = async (userId, amount, transactionType, reference) => {
+  const { data: user } = await supabase
+    .from("users")
+    .select("id")
+    .eq("auth_id", userId)
+    .maybeSingle();
+
+  const realUserId = user ? user.id : userId;
+
   const { error } = await supabase.from("transactions").insert({
-    user_id: userId,
+    user_id: realUserId,
     amount: amount,
     payment_status: 'completed',
     transaction_type: transactionType,
