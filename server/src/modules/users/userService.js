@@ -1,5 +1,10 @@
 const { supabase } = require("../../config/db");
 
+// auth_id is a UUID; internal id is a bigint.
+// Callers pass either, so detect which column to query against.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isUuid = (v) => typeof v === "string" && UUID_RE.test(v);
+
 exports.testDbConnection = async () => {
   const { data, error } = await supabase.from("users").select("*");
   if (error) throw error;
@@ -70,10 +75,14 @@ exports.toggleMembership = async (userId, newStatus) => {
     updatePayload.membership_expires_at = null;
   }
 
+  // userController passes the auth UUID (req.user.id from middleware);
+  // adminController passes the internal bigint id from :id param.
+  const matchColumn = isUuid(userId) ? "auth_id" : "id";
+
   const { data, error } = await supabase
     .from("users")
     .update(updatePayload)
-    .eq("auth_id", userId)
+    .eq(matchColumn, userId)
     .select("id, first_name, last_name, username, email, role, membership_status, membership_expires_at, created_at")
     .maybeSingle();
 
@@ -83,13 +92,16 @@ exports.toggleMembership = async (userId, newStatus) => {
 };
 
 exports.recordTransaction = async (userId, amount, transactionType, reference) => {
-  const { data: user } = await supabase
-    .from("users")
-    .select("id")
-    .eq("auth_id", userId)
-    .maybeSingle();
+  let realUserId = userId;
 
-  const realUserId = user ? user.id : userId;
+  if (isUuid(userId)) {
+    const { data: user } = await supabase
+      .from("users")
+      .select("id")
+      .eq("auth_id", userId)
+      .maybeSingle();
+    if (user) realUserId = user.id;
+  }
 
   const { error } = await supabase.from("transactions").insert({
     user_id: realUserId,
